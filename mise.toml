@@ -65,9 +65,9 @@ depends = ["docker-build"]
 description = "Test Docker image build and functionality"
 run = "./scripts/docker-test.sh"
 
-[tasks.deploy-ssh]
-description = "Deploy Docker image to remote server via SSH (usage: mise run deploy-ssh -- [server] [additional_ssh_options])"
-run = "./scripts/deploy-ssh.sh ${@}"
+[tasks.docker-ssh-copy]
+description = "Deploy Docker image to remote server via SSH (usage: mise run docker-ssh-copy -- [server] [additional_ssh_options])"
+run = "./scripts/docker-ssh-copy.sh ${@}"
 depends = ["docker-test"]
 
 [tasks.version-bump]

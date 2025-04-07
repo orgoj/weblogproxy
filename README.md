@@ -258,10 +258,10 @@ For development and testing purposes, you can deploy the Docker image directly t
 
 ```bash
 # Deploy to remote server (runs docker-test first)
-./scripts/deploy-ssh.sh user@remote-server [additional_ssh_options]
+./scripts/docker-ssh-copy.sh user@remote-server [additional_ssh_options]
 
 # Alternative using mise
-mise run deploy-ssh -- user@remote-server [additional_ssh_options]
+mise run docker-ssh-copy -- user@remote-server [additional_ssh_options]
 ```
 
 This will:
@@ -270,7 +270,6 @@ This will:
 3. Clean up the local tagged image
 
 The timestamp in the image tag allows you to easily identify when each image was built when running `docker ps` on the remote server.
-
 
 ## Contributing
 

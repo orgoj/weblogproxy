@@ -276,7 +276,7 @@
 			- `bump-version.sh`: Increments the version in codebase
 			- `publish.sh`: Creates a release and pushes to GitHub and GHCR
 			- `docker-test.sh`: Tests Docker image build and functionality
-			- `deploy-ssh.sh`: Deploys Docker image to a remote server via SSH
+			- `docker-ssh-copy.sh`: Deploys Docker image to a remote server via SSH
 	- ## Installation & Quick Start
 		- ### Prerequisites
 			- Go (version 1.21 or later recommended)

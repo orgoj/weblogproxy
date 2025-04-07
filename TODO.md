@@ -3,6 +3,7 @@
 ## URGENT
 
 - [ ] mise run lint
+- [ ] mise run docs - je to k necemu, bude to neco generovat, chybi swag
 
 - [x] Headers should be in condition and behave same as add_log_data
 - [x] How to remove a condition value for header or add_log_data, it should be possible to completely remove it with a false value
