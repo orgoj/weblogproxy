@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  weblogproxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: orgoj/weblogproxy:latest
+    container_name: weblogproxy
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+    environment:
+      - TZ=Europe/Prague
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s 

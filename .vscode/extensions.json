@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "jacobpfeifer.pfeifer-hurl",
+        "timonwong.shellcheck",
+        "mkhl.shfmt"
+    ]
+}

@@ -1,0 +1,148 @@
+# weblogproxy configuration example
+
+config_reload:
+  enabled: true         # Enable dynamic config reloading
+  interval: 60        # Check for config changes every 60 seconds
+
+server:
+  port: 8080            # Port to listen on
+  host: "0.0.0.0"       # Host to bind to (0.0.0.0 for all interfaces)
+  mode: "embedded"      # 'standalone' or 'embedded'
+  path_prefix: "__wlp__" # Path prefix for endpoints, only used in 'embedded' mode
+  # domain: "weblogproxy.example.com"  # Domain for absolute URLs in standalone mode
+  cors:
+    enabled: true       # Enable CORS for standalone mode
+    allowed_origins:
+      - "https://www.example.com"
+      - "https://app.example.com"
+    max_age: 86400      # The preflight request cache duration in seconds (24 hours)
+  headers:              # Custom headers for /logger.js response (e.g., caching)
+    Cache-Control: "public, max-age=3600" # 1 hour cache
+  request_limits:       # Moved from security
+    max_body_size: 102400 # bytes (100KB)
+    rate_limit: 1000      # requests per minute per IP
+  trusted_proxies:      # List of trusted reverse proxy IPs/CIDRs
+    - "192.168.0.0/16"  # Allows X-Forwarded-For from local network
+    - "10.0.0.1"        # Specific trusted proxy IP
+
+security:
+  token:
+    secret: "change_this_to_a_secure_random_string" # MUST be changed
+    # Platnost tokenu jako string (např. "10m", "1h", "24h", "1h30m")
+    expiration: "24h"  # Změněno z int 86400 na string "24h"
+  # request_limits: moved to server section
+
+log_config:
+  # Pravidlo 0: Definuje globální hodnoty, nikdy nezastaví procesování (pokračuje dál)
+  - condition: {}
+    enabled: true
+    continue: true
+    add_log_data:
+      - name: "weblogproxy_hostname"
+        source: "static"
+        value: "weblogproxy-prod-01"
+      - name: "environment"
+        source: "static"
+        value: "production"
+      - name: "client_ip"
+        source: "header"
+        value: "X-Real-IP" # Předpokládá nginx/apache proxy
+    script_injection:
+      - url: "https://cdn.example.com/shared/base-analytics.js"
+        async: true
+
+  # Pravidlo 1: Pravidlo pro specifický web, dědí a přepisuje hodnoty z Pravidla 0, posílá pouze do některých destinací
+  - condition:
+      site_id: "example-site"
+      gtm_ids:
+        - "GTM-ABC123"
+        - "GTM-DEF456"
+      user_agents:
+        - "Mozilla/5.0*"
+        - "AppleWebKit*"
+      ips:
+        - "192.168.1.0/24"  # Vnitřní síť
+        - "10.0.0.0/8"      # VPN
+    enabled: true
+    # continue: false (výchozí hodnota, není potřeba specifikovat)
+    add_log_data:
+      - name: "website"
+        source: "static"
+        value: "example.com"
+      - name: "environment" # Přepíše 'environment' z Pravidla 0
+        source: "static"
+        value: "staging"
+      - name: "campaign_id"
+        source: "query"
+        value: "utm_campaign"
+    script_injection:
+      - url: "https://cdn.example.com/site-specific/init.js"
+        async: false
+        defer: true
+    # Explicitně uvádí, že pouze tyto destinace budou použity:
+    log_destinations: ["prod_file", "prod_gelf"]
+
+  # Pravidlo 2: Logovací data pro development/testování
+  - condition:
+      site_id: "test-site"
+    enabled: true
+    # Posílá všechny logy do všech povolených destinací (výchozí)
+    # log_destinations: []
+    
+  # Pravidlo 3: Použití headers v podmínce a odstranění položky pomocí false hodnoty
+  - condition:
+      site_id: "api-site"
+      headers:
+        # Kontrola na existenci a hodnotu hlavičky
+        Content-Type: "application/json"
+        # Kontrola pouze na existenci hlavičky (libovolná hodnota)
+        Authorization: true
+        # Hlavička nesmí existovat
+        X-Debug-Mode: false
+    enabled: true
+    add_log_data:
+      # Odstranění dříve definované hodnoty (např. z Pravidla 0) 
+      - name: "client_ip"
+        source: "static"
+        value: "false"
+      # Přidání nové hodnoty
+      - name: "api_version"
+        source: "header"
+        value: "X-API-Version"
+    log_destinations: ["prod_file"]
+
+# Note: If no rule with continue:false matches, logging is effectively disabled.
+
+log_destinations:
+  # Destination 1: Send logs to GELF (Graylog)
+  - name: "prod_gelf"
+    type: "gelf"
+    enabled: false
+    host: "graylog.example.com"
+    port: 12201
+    protocol: "udp"
+    compression: true
+    add_log_data:
+      - name: "facility"
+        source: "static"
+        value: "weblogproxy"
+      - name: "target_system"
+        source: "static"
+        value: "graylog"
+
+  # Destination 2: Save logs to a local file with rotation
+  - name: "prod_file"
+    type: "file"
+    enabled: true
+    path: "/var/log/weblogproxy/access.log"
+    format: "json"
+    add_log_data:
+      - name: "output_format"
+        source: "static"
+        value: "json_lines"
+    rotation:
+      max_size: "100MB"
+      max_age: "7d"
+      max_backups: 10
+      compress: true
+

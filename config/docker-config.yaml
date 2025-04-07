@@ -1,0 +1,65 @@
+# Docker default configuration
+server:
+  host: "0.0.0.0"  # Listen on all interfaces
+  port: 8080       # Default port
+  mode: "standalone" # Use 'standalone' for Docker, more convenient
+  domain: "localhost" # When running locally, use localhost
+  cors:
+    enabled: true
+    allowed_origins: ["*"] # Allow all origins for development
+    max_age: 3600 # Preflight cache for 1 hour
+  headers:
+    "Cache-Control": "public, max-age=3600, stale-while-revalidate=60"
+  request_limits:
+    max_body_size: 20480 # 20KB
+    rate_limit: 100      # Per minute
+  trusted_proxies: ["127.0.0.1", "10.0.0.0/8"] # Trust local IPs for X-Forwarded-For header
+
+security:
+  token:
+    secret: "docker-development-secret-key-change-in-production"
+    expiration: "30m" # Valid formats: 30m, 1h, 24h, etc.
+
+log_config:
+  # Rule matching all requests, with basic script
+  - condition: {}  # Empty condition matches everything
+    enabled: true
+    continue: true # Continue processing next rules
+    add_log_data:
+      - name: "server_name"
+        source: "static"
+        value: "weblogproxy-docker"
+      - name: "environment" 
+        source: "static"
+        value: "docker"
+    script_injection:
+      - url: "/scripts/base-tracking.js"
+        async: true
+        defer: false
+
+  # Example site-specific rule
+  - condition:
+      site_id: "my-site"
+    enabled: true 
+    log_destinations: ["file_json"] # Specific destination list
+    add_log_data:
+      - name: "site"
+        source: "static"
+        value: "my-site"
+
+log_destinations:
+  # JSON file logger with rotation
+  - name: "file_json"
+    type: "file"
+    enabled: true
+    path: "/app/logs/app.log"
+    format: "json"
+    add_log_data:
+      - name: "logger_type"
+        source: "static"
+        value: "file_json"
+    rotation:
+      max_size: 10     # 10MB (minimum 1MB due to Lumberjack library limitations)
+      max_age: "7d"    # 7 days
+      max_backups: 10
+      compress: true 

@@ -1,0 +1,195 @@
+# Configuration for automated tests - includes all options
+
+config_reload:
+  enabled: true # Testing dynamic loading
+  interval: 10 # Check every 10 seconds
+
+server:
+  host: "0.0.0.0"
+  port: 8081 # Different port for tests
+  mode: "embedded" # Testing embedded mode
+  path_prefix: "__wlp_test__" # Testing custom prefix (for standalone mode the domain would be used)
+  # domain: "weblogproxy.test.com" # This would be used for standalone mode
+  cors: # CORS configuration (especially relevant for standalone mode, but we're testing the structure)
+    enabled: true
+    allowed_origins: ["*", "http://localhost:3000", "https://test.example.com"]
+    max_age: 3600 # Preflight cache for 1 hour
+  headers: # Headers for /logger.js
+    "Cache-Control": "public, max-age=10, stale-while-revalidate=5"
+    "X-Test-Header": "TestValue"
+  request_limits: # Moved from security section
+    max_body_size: 20480 # 20KB
+    rate_limit: 5000 # High limit for rotation testing
+  trusted_proxies: ["127.0.0.1"] # Trust localhost for tests with X-Forwarded-For
+
+security:
+  token:
+    secret: "super-secret-test-key-!@#$"
+    # Token validity as string (e.g., "10m", "1h", "30m")
+    expiration: "30m" # Changed from int to string
+  # request_limits: moved to server section
+
+log_config:
+  # Rule 0: Defines default values and basic script (applies to all)
+  - condition: {}
+    enabled: true
+    continue: true
+    add_log_data:
+      - name: "server_hostname"
+        source: "static"
+        value: "weblogproxy-test-server-01"
+      - name: "request_id"
+        source: "header"
+        value: "X-Request-ID"
+      - name: "environment"
+        source: "static"
+        value: "testing-default"
+    # log_destinations: ["file_plain"] # Revert this change
+    script_injection:
+      - url: "/scripts/base-tracking.js"
+        async: true
+
+  # Rule 1: Normal rule, inherits, adds/overwrites data and adds script
+  - condition:
+      site_id: "test-site-1"
+      gtm_ids:
+        - gtm-test-A
+        - gtm-test-B
+      user_agents:
+        - "*TestAgent*"
+        - "Mozilla/5.0*"
+        - "hurl*"
+      ips:
+        - "192.168.1.0/24"
+        - "10.0.0.1"
+        - "::1/128"
+    enabled: true
+    log_destinations: ["file_rotated", "file_plain"] # Add file_plain here explicitly for Rule 1
+    script_injection:
+      - url: "https://cdn.example.com/tracker.js"
+        async: true
+      - url: "/local/scripts/init.js"
+        async: false
+        defer: true
+      - url: "/scripts/base-tracking.js"
+        async: true
+        defer: false
+    add_log_data:
+      - name: "campaign"
+        source: "query"
+        value: "utm_campaign" # value = query parameter key
+      - name: "product_sku"
+        source: "post"
+        value: "sku"          # value = field key in JSON body
+      - name: "environment"
+        source: "static"
+        value: "testing-rule1"
+      - name: "request_id"
+        source: "header"
+        value: "X-Rule1-Request-ID" # value = different header key
+
+  # Rule 2: Another normal rule, just inherits
+  - condition:
+      ips: ["192.168.99.1"]
+    enabled: true
+    log_destinations: ["file_plain"]
+
+  # Rule with specific header value match
+  - condition:
+      site_id: "header-test-site" # Special site ID just for header tests
+      headers:
+        "X-Test-Header": "TestValue"
+    enabled: true
+    continue: false
+    log_destinations: ["file_rotated", "file_plain"]
+    add_log_data:
+      - name: "environment"
+        source: "static"
+        value: "testing-rule1"
+
+  # Rule with header existence check
+  - condition:
+      site_id: "header-test-site" # Special site ID just for header tests
+      headers:
+        "User-Agent": true
+    enabled: true
+    continue: false
+    log_destinations: ["file_rotated", "file_plain"]
+    add_log_data:
+      - name: "environment"
+        source: "static"
+        value: "testing-rule1"
+
+  # Rule with header non-existence check
+  - condition:
+      site_id: "header-test-site" # Special site ID just for header tests
+      headers:
+        "X-Unexpected-Header": false
+    enabled: true
+    continue: false
+    log_destinations: ["file_rotated", "file_plain"]
+    add_log_data:
+      - name: "environment"
+        source: "static"
+        value: "testing-rule1"
+
+  # Rule 3: Disabled (just for demonstration that it will be skipped)
+  - condition:
+      site_id: disabled-site
+    enabled: false
+
+log_destinations:
+  # Destination 1: File with rotation and compression
+  - name: "file_rotated"
+    type: "file"
+    enabled: true
+    path: "/tmp/weblogproxy-test-rotation.log"
+    format: "json"
+    add_log_data:
+      - name: "output_format"
+        source: "static"
+        value: "json_lines"
+      - name: "dest_specific_header_val"
+        source: "header"
+        value: "X-Custom-Dest-Header"
+    rotation:
+      max_size: "1" # Value in MB (lumberjack has minimum limit of 1MB)
+      max_age: "1d"     # days (d), weeks (w), months (m)
+      max_backups: 3
+      compress: false
+
+  # Destination 2: File without rotation, different format (for testing)
+  - name: "file_plain"
+    type: "file"
+    enabled: true
+    path: "/tmp/weblogproxy-test-plain.log"
+    format: "text"
+    add_log_data:
+      - name: "output_format"
+        source: "static"
+        value: "text_simple"
+    rotation: # No rotation for this file (empty values or omitted)
+      # max_size: ""
+      # max_age: ""
+      # max_backups: 0
+      # compress: false
+
+  # Destination 3: GELF with compression (commented out for testing)
+  # - name: "test_gelf"
+  #   type: "gelf"
+  #   enabled: true
+  #   add_log_data:
+  #     - name: "gelf_facility"
+  #       source: "static"
+  #       value: "test_suite"
+
+  # Destination 4: GELF without compression, disabled (commented out for testing)
+  # - name: "disabled_gelf"
+  #   type: "gelf"
+  #   enabled: false
+  #   host: "gelf.example.com"
+  #   port: 12202
+  #   protocol: "tcp" # Test TCP (if supported)
+  #   compression: false
+  #   fields:
+  #     status: "disabled" 

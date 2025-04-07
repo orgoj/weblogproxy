@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+
+# Binary files
+bin/
+bin/*
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with 'go test -c'
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Test files
+test/
+
+# Build files
+Dockerfile
+.dockerignore
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+*.tmp
+
+# Scripts are only for local development
+scripts/
