@@ -41,8 +41,8 @@ echo "Build timestamp: $BUILD_TIMESTAMP"
 echo "Image tag: $IMAGE_TAG"
 
 # Tag existing test image with timestamp
-echo "Tagging existing weblogproxy:test image as $TEMP_IMAGE_NAME..."
-$R docker tag weblogproxy:test "$TEMP_IMAGE_NAME"
+echo "Tagging existing weblogproxy:latest image as $TEMP_IMAGE_NAME..."
+$R docker tag weblogproxy:latest "$TEMP_IMAGE_NAME"
 
 # Transfer the image to the remote server
 echo "Transferring image to $SERVER..."
