@@ -32,37 +32,52 @@ WebLogProxy is a flexible and performant web log processor designed to receive l
 
 ### Quick Start with Docker
 
-1.  Pull and run the Docker image:
-    ```bash
-    docker run -p 8080:8080 -v $(pwd)/config:/app/config -v $(pwd)/logs:/app/logs orgoj/weblogproxy:latest
-    ```
+#### 1. Create a config and logs directory
 
-2.  Using Docker Compose, create a `docker-compose.yml` file:
-    ```yaml
-    version: '3.8'
+Create a `config` directory and copy the `config/docker-config.yaml` file to it. Edit it to your needs.
 
-    services:
-      weblogproxy:
-        image: weblogproxy:latest
-        container_name: weblogproxy
-        restart: unless-stopped
-        ports:
-          - "8080:8080"
-        volumes:
-          - ./config:/app/config
-          - ./logs:/app/logs
-        environment:
-          - TZ=Europe/Prague
-    ```
+Create a `logs` directory to store the log files.
 
-    Then run:
-    ```bash
-    docker compose up -d
-    ```
+
+#### 2a.  Using Docker CLI
+
+Run the following command to start the container:
+
+```bash
+docker run -p 8080:8080 -v $(pwd)/config:/app/config -v $(pwd)/logs:/app/logs weblogproxy:latest
+```
+
+#### 2b.  Using Docker Compose
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+    weblogproxy:
+    image: weblogproxy:latest
+    container_name: weblogproxy
+    restart: unless-stopped
+    ports:
+        - "8080:8080"
+    volumes:
+        - ./config:/app/config
+        - ./logs:/app/logs
+    environment:
+        - TZ=Europe/Prague
+```
+
+Then run:
+
+```bash
+docker compose up -d
+```
+
 
 ### Configuration
 
-Configuration is done via a YAML file. See `config/example.yaml` for a detailed example.
+Configuration is done via a YAML file. See `config` for examples.
 
 ### Key Sections:
 
