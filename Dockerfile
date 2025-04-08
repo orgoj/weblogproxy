@@ -36,8 +36,8 @@ RUN apk add --no-cache ca-certificates tzdata bash
 # Set working directory
 WORKDIR /app
 
-# Create necessary directories for logs
-RUN mkdir -p /app/logs
+# Create necessary directories for log
+RUN mkdir -p /app/log
 
 # Copy the binaries from the builder stage
 COPY --from=builder /app/bin/weblogproxy /app/weblogproxy

@@ -52,7 +52,7 @@ log_destinations:
   - name: "file_json"
     type: "file"
     enabled: true
-    path: "/app/logs/app.log"
+    path: "/app/log/app.log"
     format: "json"
     add_log_data:
       - name: "logger_type"

@@ -12,7 +12,7 @@ services:
       - "8080:8080"
     volumes:
       - ./config:/app/config
-      - ./logs:/app/logs
+      - ./log:/app/log
     environment:
       - TZ=Europe/Prague
     healthcheck:

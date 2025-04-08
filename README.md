@@ -32,11 +32,11 @@ WebLogProxy is a flexible and performant web log processor designed to receive l
 
 ### Quick Start with Docker
 
-#### 1. Create a config and logs directory
+#### 1. Create a config and log directory
 
 Create a `config` directory and copy the `config/docker-config.yaml` file to it. Edit it to your needs.
 
-Create a `logs` directory to store the log files.
+Create a `log` directory to store the log files.
 
 
 #### 2a.  Using Docker CLI
@@ -44,7 +44,7 @@ Create a `logs` directory to store the log files.
 Run the following command to start the container:
 
 ```bash
-docker run -p 8080:8080 -v $(pwd)/config:/app/config -v $(pwd)/logs:/app/logs weblogproxy:latest
+docker run -p 8080:8080 -v $(pwd)/config:/app/config -v $(pwd)/log:/app/log weblogproxy:latest
 ```
 
 #### 2b.  Using Docker Compose
@@ -63,7 +63,7 @@ services:
         - "8080:8080"
     volumes:
         - ./config:/app/config
-        - ./logs:/app/logs
+        - ./log:/app/log
     environment:
         - TZ=Europe/Prague
 ```
@@ -210,13 +210,13 @@ For viewing and analyzing log files, we recommend using [lnav](https://lnav.org/
 Example usage with lnav:
 ```bash
 # View logs in real-time
-lnav -f /path/to/logs/*.log
+lnav -f /path/to/log/*.log
 
 # Search for specific events
 lnav -c ':filter-in msg =~ "error"'
 
 # Query logs using SQL
-lnav -c ':sql SELECT time, msg FROM logs WHERE level >= 50'
+lnav -c ':sql SELECT time, msg FROM log WHERE level >= 50'
 ```
 
 ## Rule Processing Logic

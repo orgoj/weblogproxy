@@ -114,7 +114,7 @@ log_config:
 # Note: If no rule with continue:false matches, logging is effectively disabled.
 
 log_destinations:
-  # Destination 1: Send logs to GELF (Graylog)
+  # Destination 1: Send log to GELF (Graylog)
   - name: "prod_gelf"
     type: "gelf"
     enabled: false
@@ -130,7 +130,7 @@ log_destinations:
         source: "static"
         value: "graylog"
 
-  # Destination 2: Save logs to a local file with rotation
+  # Destination 2: Save log to a local file with rotation
   - name: "prod_file"
     type: "file"
     enabled: true
