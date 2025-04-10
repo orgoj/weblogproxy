@@ -6,14 +6,37 @@ source "$(dirname "$0")/config.sh"
 
 # Parse arguments
 BUMP_TYPE=""
-if [ $# -eq 1 ]; then
-    BUMP_TYPE=$1
-else
-    echo "Usage: $0 [major|minor|patch]"
-    echo "Examples:"
-    echo "  $0 patch  # Increases version from 1.2.3 to 1.2.4"
-    echo "  $0 minor  # Increases version from 1.2.3 to 1.3.0"
-    echo "  $0 major  # Increases version from 1.2.3 to 2.0.0"
+SKIP_CONFIRMATION=false
+
+# Process command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -y|--yes)
+            SKIP_CONFIRMATION=true
+            shift
+            ;;
+        major|minor|patch)
+            BUMP_TYPE=$1
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [-y|--yes] [major|minor|patch]"
+            echo "Options:"
+            echo "  -y, --yes    Skip confirmation prompt"
+            echo "Examples:"
+            echo "  $0 patch            # Increases version from 1.2.3 to 1.2.4 (with confirmation)"
+            echo "  $0 -y minor         # Increases version from 1.2.3 to 1.3.0 (without confirmation)"
+            echo "  $0 major --yes      # Increases version from 1.2.3 to 2.0.0 (without confirmation)"
+            exit 1
+            ;;
+    esac
+done
+
+# Check if bump type was provided
+if [ -z "$BUMP_TYPE" ]; then
+    echo "Error: Bump type (major, minor, or patch) is required"
+    echo "Usage: $0 [-y|--yes] [major|minor|patch]"
     exit 1
 fi
 
@@ -58,12 +81,14 @@ esac
 NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
 echo "New version will be: $NEW_VERSION"
 
-# Ask for confirmation
-read -p "Do you want to proceed with updating the version? (y/n) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Version update canceled."
-    exit 1
+# Ask for confirmation if not skipped
+if [ "$SKIP_CONFIRMATION" = false ]; then
+    read -p "Do you want to proceed with updating the version? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Version update canceled."
+        exit 1
+    fi
 fi
 
 # Update version in files

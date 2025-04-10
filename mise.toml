@@ -70,10 +70,9 @@ description = "Deploy Docker image to remote server via SSH (usage: mise run doc
 run = "./scripts/docker-ssh-copy.sh ${@}"
 depends = ["docker-test"]
 
-# TODO nefunguje dela error, asi proto ze sctipt chce napsat y pro provedeni
 [tasks.version-bump]
 description = "Bump version (usage: mise run version-bump -- [major|minor|patch])"
-run = "./scripts/bump-version.sh ${@}"
+run = "./scripts/bump-version.sh -y ${@}"
 
 [tasks.publish]
 description = "Publish version (usage: mise run publish -- [version])"
