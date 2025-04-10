@@ -17,11 +17,22 @@ CGO_ENABLED = "0"
 [tasks.deps]
 description = "Download and tidy dependencies"
 run = "go mod tidy"
+sources = ["go.*"]
+outputs = { auto = true }
+
+#TODO proc je to samostatny program
+[tasks.config-check]
+description = "Validate configuration file"
+run = "go run ./cmd/config-validator/main.go ./config/example.yaml && go run ./cmd/config-validator/main.go ./config/test.yaml"
+sources = ["go.*", "cmd/**/*.go", "internal/**/*.go"]
+outputs = { auto = true }
 
 [tasks.build]
 description = "Build the weblogproxy binary"
-run = "go build -o bin/weblogproxy ./cmd/weblogproxy"
+run = "go build -o weblogproxy ./cmd/weblogproxy"
 depends = ["deps"]
+sources = ["go.*", "cmd/**/*.go", "internal/**/*.go"]
+outputs = "weblogproxy"
 
 [tasks.run]
 description = "Run the weblogproxy service with example config"
@@ -36,7 +47,6 @@ depends = ["config-check", "deps"]
 [tasks.test-unit]
 description = "Spustí pouze unit testy"
 run = "go test -v ./..."
-depends = ["build"]
 
 [tasks.test-e2e]
 description = "Spustí pouze E2E testy"
@@ -44,8 +54,13 @@ run = "./test/run.sh"
 depends = ["build"]
 
 [tasks.test]
-description = "Spustí všechny testy"
-depends = ["build", "config-check", "test-unit", "test-e2e"]
+description = "Spustí všechny testy pro app"
+wait_for = ["build", "config-check"]
+depends = ["test-unit", "test-e2e"]
+
+[tasks.test-all]
+description = "Spustí všechny testy pro app i docker"
+depends = ["test", "docker-test"]
 
 [tasks.lint]
 description = "Run linters"
@@ -54,7 +69,8 @@ run = "golangci-lint run"
 [tasks.docker-build]
 description = "Build Docker image"
 run = "docker build -t weblogproxy:latest ."
-depends = ["build"]
+sources = ["Dockerfile", "cmd/**/*.go", "internal/**/*.go"]
+outputs = { auto = true }
 
 [tasks.docker-run]
 description = "Run Docker container"
@@ -64,6 +80,9 @@ depends = ["docker-build"]
 [tasks.docker-test]
 description = "Test Docker image build and functionality"
 run = "./scripts/docker-test.sh"
+sources = ["Dockerfile", "cmd/**/*.go", "internal/**/*.go"]
+outputs = { auto = true }
+depends = ["docker-build"]
 
 [tasks.docker-ssh-copy]
 description = "Deploy Docker image to remote server via SSH (usage: mise run docker-ssh-copy -- [server] [additional_ssh_options])"
@@ -78,10 +97,6 @@ run = "./scripts/bump-version.sh -y ${@}"
 description = "Publish version (usage: mise run publish -- [version])"
 run = "./scripts/publish.sh ${@}"
 depends = ["test", "docker-test"]
-
-[tasks.config-check]
-description = "Validate configuration file"
-run = "go run ./cmd/config-validator/main.go ./config/example.yaml && go run ./cmd/config-validator/main.go ./config/test.yaml"
 
 [tasks.clean]
 description = "Clean build artifacts"
