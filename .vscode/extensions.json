@@ -2,6 +2,7 @@
     "recommendations": [
         "jacobpfeifer.pfeifer-hurl",
         "timonwong.shellcheck",
-        "mkhl.shfmt"
+        "mkhl.shfmt",
+        "hverlin.mise-vscode"
     ]
 }
