@@ -1,0 +1,45 @@
+## Startup Chat Rules
+
+- Read @DESCRIPTION.md at chat start; this is the detailed documentation for creating the application.
+- Read @README.md at chat start; this is the application description for users.
+- Follow everywhere "Basic Goal" from [DESCRIPTION.md](mdc:DESCRIPTION.md)
+- Mark DONE items in @TODO.md as done after they are implemented.
+- Update README.md and DESCRIPTION.md with new implementations.
+- Change relevant tests if changing logic.
+- Don’t use `cd` in commands; run everything from the project root!!!
+- Do not add comments about what you’re doing, such as moving code or similar actions. That won’t be true in the next step, and no one cares. Comments should only describe the functionality that exists, not the steps you took to program it.
+- After code changes, always run tests at the end `mise run test`
+- Without functional unit tests, you cannot work on end-to-end tests.
+- Don't make anything up, if you don't know, read the DESCRIPTION.md again and follow the "Basic Goal" at all times.
+
+## Documentation Language
+- All code, comments, variable names, and documentation must be in English.
+- Only chat with the user will be in Czech.
+
+## Code Quality
+- Write code as a professional developer.
+- Follow security best practices.
+- Use the latest Go patterns and practices.
+- Write maintainable and clean code.
+- Follow SOLID principles.
+- Write comprehensive error handling.
+- Add proper logging.
+- Use meaningful variable and function names.
+- Add proper documentation for public APIs.
+- Keep functions small and focused.
+- Use dependency injection where appropriate.
+- Handle edge cases.
+- Validate all inputs.
+- Sanitize all outputs.
+- Use proper error types.
+- Follow Go idioms and conventions.
+
+## Testing
+- Focus on integration tests for critical paths.
+- Write end-to-end tests for API endpoints.
+- Test all configuration scenarios.
+- Test security features (tokens, limits).
+- Write unit tests only for complex business logic.
+- Use mocks for external dependencies.
+- Test error cases and edge conditions.
+- Ensure test coverage for critical components.
