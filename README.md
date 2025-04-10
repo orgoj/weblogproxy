@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/github/license/orgoj/weblogproxy)
 ![Go Version](https://img.shields.io/github/go-mod/go-version/orgoj/weblogproxy)
 
-**Current version: 0.9.0** - See [CHANGELOG.md](CHANGELOG.md) for details
+**Current version: 0.9.1** - See [CHANGELOG.md](CHANGELOG.md) for details
 
 ## Overview
 
