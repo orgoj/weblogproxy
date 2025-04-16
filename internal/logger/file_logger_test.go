@@ -28,7 +28,11 @@ func readLastLine(t *testing.T, path string) string {
 	if err != nil {
 		t.Fatalf("Failed to open log file %s: %v", path, err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			t.Fatalf("Failed to close file: %v", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 	var lastLine string
@@ -112,10 +116,14 @@ func TestNewFileLogger(t *testing.T) {
 				}
 				// Cleanup if logger was partially created or file exists
 				if lgr != nil {
-					lgr.Close()
+					if err := lgr.Close(); err != nil {
+						t.Errorf("Failed to close logger: %v", err)
+					}
 				}
-				os.Remove(tt.cfg.Path) // Attempt removal even on error
-				return                 // Stop test here
+				if err := os.Remove(tt.cfg.Path); err != nil && !os.IsNotExist(err) {
+					t.Errorf("Failed to remove file: %v", err)
+				}
+				return // Stop test here
 			}
 			// --- If no error expected ---
 			if err != nil {
@@ -124,7 +132,11 @@ func TestNewFileLogger(t *testing.T) {
 			if lgr == nil {
 				t.Fatal("Expected a logger instance, but got nil")
 			}
-			defer lgr.Close() // Ensure logger is closed after test
+			defer func() {
+				if err := lgr.Close(); err != nil {
+					t.Errorf("Failed to close logger: %v", err)
+				}
+			}()
 
 			if lgr.writer == nil {
 				t.Error("Logger writer should not be nil")
@@ -203,7 +215,11 @@ func TestFileLogger_Log_JSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	defer lgr.Close()
+	defer func() {
+		if err := lgr.Close(); err != nil {
+			t.Errorf("Failed to close logger: %v", err)
+		}
+	}()
 
 	// Prepare test data
 	testTime := float64(time.Now().UnixMilli() - 1000) // A time in the past
@@ -235,7 +251,9 @@ func TestFileLogger_Log_JSON(t *testing.T) {
 	// Convert original numbers for comparison
 	expectedComparable, _ := json.Marshal(logData)
 	var expectedData map[string]interface{}
-	json.Unmarshal(expectedComparable, &expectedData)
+	if err := json.Unmarshal(expectedComparable, &expectedData); err != nil {
+		t.Fatalf("Failed to unmarshal expected data: %v", err)
+	}
 
 	if !reflect.DeepEqual(loggedData, expectedData) {
 		gotJSON, _ := json.MarshalIndent(loggedData, "", "  ")
@@ -256,7 +274,11 @@ func TestFileLogger_Log_Text(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	defer lgr.Close()
+	defer func() {
+		if err := lgr.Close(); err != nil {
+			t.Errorf("Failed to close logger: %v", err)
+		}
+	}()
 
 	// Prepare test data (order might matter for text)
 	// Use a fixed time for predictable output
@@ -327,7 +349,11 @@ func TestFileLogger_Log_Rotation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	defer lgr.Close()
+	defer func() {
+		if err := lgr.Close(); err != nil {
+			t.Errorf("Failed to close logger: %v", err)
+		}
+	}()
 
 	// Log enough data to trigger rotation several times
 	// Each line is ~100 bytes. Logger uses min 1MB limit.

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -115,19 +114,6 @@ type LogRule struct {
 	ScriptInjection []ScriptInjectionSpec `yaml:"script_injection,omitempty"`
 	AddLogData      []AddLogDataSpec      `yaml:"add_log_data,omitempty"`
 	LogDestinations []string              `yaml:"log_destinations,omitempty"` // Optional list of destination names
-}
-
-// Custom validator for CIDR or IP
-var cidrOrIPRegex = regexp.MustCompile(`^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))?$|^([0-9a-fA-F:]+:+)+[0-9a-fA-F]+(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$`) // Basic regex, net.ParseCIDR/IP is better
-
-func validateCIDROrIP(fl validator.FieldLevel) bool {
-	ipOrCIDR := fl.Field().String()
-	if ipOrCIDR == "" {
-		return true // Allow empty string if field is optional
-	}
-	// A better validation would use net.ParseIP and net.ParseCIDR and handle errors
-	// For now, use regex
-	return cidrOrIPRegex.MatchString(ipOrCIDR)
 }
 
 // LoadConfig loads and validates the configuration from a file
@@ -489,19 +475,19 @@ func isValidJSIdentifier(s string) bool {
 	}
 	// Check first character (must be letter, underscore, or dollar sign)
 	firstChar := s[0]
-	if !((firstChar >= 'a' && firstChar <= 'z') ||
-		(firstChar >= 'A' && firstChar <= 'Z') ||
-		firstChar == '_' || firstChar == '$') {
+	if ('a' > firstChar || firstChar > 'z') &&
+		('A' > firstChar || firstChar > 'Z') &&
+		firstChar != '_' && firstChar != '$' {
 		return false
 	}
 
 	// Check rest of the characters (can also include digits)
 	for i := 1; i < len(s); i++ {
 		c := s[i]
-		if !((c >= 'a' && c <= 'z') ||
-			(c >= 'A' && c <= 'Z') ||
-			(c >= '0' && c <= '9') ||
-			c == '_' || c == '$') {
+		if ('a' > c || c > 'z') &&
+			('A' > c || c > 'Z') &&
+			('0' > c || c > '9') &&
+			c != '_' && c != '$' {
 			return false
 		}
 	}

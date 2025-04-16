@@ -65,7 +65,7 @@ func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProce
 	if clientIPString != "" {
 		clientIP = net.ParseIP(clientIPString)
 	}
-	var userAgent string = r.UserAgent()
+	userAgent := r.UserAgent()
 
 	// Iterate through rules
 	for i, rule := range rp.cfg.LogConfig {

@@ -240,16 +240,5 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		}
 
 		// All processing done, return
-		return
 	}
-}
-
-// Helper function to find destination config by name
-func findDestinationConfig(destinations []config.LogDestination, name string) (config.LogDestination, bool) {
-	for _, dest := range destinations {
-		if dest.Name == name {
-			return dest, true
-		}
-	}
-	return config.LogDestination{}, false
 }

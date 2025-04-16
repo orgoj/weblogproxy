@@ -214,11 +214,6 @@ func corsMiddleware(allowedOrigins []string, maxAge int) gin.HandlerFunc {
 		for _, allowedOrigin := range allowedOrigins {
 			if allowedOrigin == "*" || allowedOrigin == origin {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-				if allowedOrigin == "*" {
-					// If wildcard, set Vary header if credentials are NOT allowed
-					// If credentials ARE allowed (as below), wildcard origin is problematic
-					// For simplicity, we might restrict '*' only if credentials are false
-				}
 				found = true
 				break
 			}

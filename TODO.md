@@ -2,7 +2,7 @@
 
 ## URGENT
 
-- [ ] setup linting
+- [x] setup linting
 - [ ] setup code formatting
 - [ ] security tests
 

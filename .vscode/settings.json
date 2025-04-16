@@ -7,5 +7,7 @@
     "go.alternateTools": {
         "go": "/home/michael/.local/share/mise/shims/go",
         "gopls": "/home/michael/.local/share/mise/shims/gopls"
-    }
+    },
+    "go.lintTool": "golangci-lint",
+    "go.lintOnSave": "workspace"
 }

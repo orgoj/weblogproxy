@@ -23,10 +23,8 @@ func newMockRequest(method, path string, headers map[string]string, queryParams 
 	if queryParams != nil {
 		req.URL.RawQuery = queryParams.Encode()
 	}
-	if headers != nil {
-		for k, v := range headers {
-			req.Header.Set(k, v)
-		}
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
 		if body != nil {
