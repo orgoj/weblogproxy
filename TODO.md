@@ -2,30 +2,19 @@
 
 ## URGENT
 
-- [ ] mise run lint
-- [ ] mise run docs - je to k necemu, bude to neco generovat, chybi swag
+- [ ] mise run docs - je to k necemu, bude to neco generovat, chybi swag, podle men je to zbytecne mame README a prehled o app si AI udela
 - [ ] na co je config-validator, config si ma testovat sama aplikace na option, tuto funkci musi mit aby se dal udelat reload configu
-- [x] pod jakym uzivatelem do bezi, melo by to byt nastavitelne, at mi to sedi se systemovym adminem
+- [ ] setup linting
+- [ ] setup code formatting
+- [ ] security tests
+- [ ] bump proces rozdelit na 2 faze, mormalne aplikace musi byt ve vyvojovem stavu a do CHANGELOG to davat na zacatek a pod dev verzi, a pak musi bit nejkay prikaz na release, ktery udela bump verze tak jam mame ted a v tom changelogu to tu rozdelanou verzi zmeni na aktualni, pak zase spustim prikaz na dev a nal by mi nastavit v changelog dev versi, z verze buildu byvch mel poznad, jestli to bylo buildovane v dev rezimu a nebu release rezimu
 
-- [x] Headers should be in condition and behave same as add_log_data
-- [x] How to remove a condition value for header or add_log_data, it should be possible to completely remove it with a false value
+## GELF (LATER after everything else works and all tests)
 
-- [x] Extend tests for CORS functionality verification, especially preflight requests
-- [x] Implement validation for CORS settings when loading configuration
-- [x] Add integration tests for CORS configuration
-
-## Project Structure
-
-- [x] Dockerfile
-- [x] Github CI
-- [~] Extend documentation in `README.md` (ONLY AT THE END WHEN EVERYTHING IS READY)
-- [~] Upload to Github
-- [~] Upload to docker hub, or maybe github to your docker hub
-- [x] Add versioning and CHANGELOG.md with proper maintenance procedures
-
-## Core Application
-
-- [x] Data truncation (`truncateLogDataIfNeeded`) should support nested structures.
+- [-] Implement GELF Logger
+- [ ] Add support for TCP GELF
+- [ ] Add support for ZLIB GELF compression
+- [ ] Implement log truncation based on MaxBodySize for GELF and other formats
 
 ## Testing
 
@@ -39,15 +28,11 @@
 - [x] Add integration tests for different header configurations
 - [x] Add integration tests for trusted proxies and IP detection
 
-## GELF (LATER after everything else works and all tests)
-
-- [-] Implement GELF Logger
-- [ ] Add support for TCP GELF
-- [ ] Add support for ZLIB GELF compression
-- [ ] Implement log truncation based on MaxBodySize for GELF and other formats
-
 ## Maybe we'll do
 
+- [~] Extend documentation in `README.md` (ONLY AT THE END WHEN EVERYTHING IS READY)
+- [~] Upload to Github
+- [~] Upload to docker hub, or maybe github to your docker hub
 - [?] Optional javascript template in condition
 - [-] Optimize system resource consumption (not started). 
 - [?] Test output for GELF destination (once implemented).

@@ -41,11 +41,13 @@ docker run -p 8080:8080 -e PUID=1001 -e PGID=1001 weblogproxy:latest
 
 # Run as the current user
 docker run -p 8080:8080 -e PUID=$(id -u) -e PGID=$(id -g) weblogproxy:latest
+```
 
-# Using docker-compose (add to docker-compose.yml)
-# environment:
-#   - PUID=1001
-#   - PGID=1001
+#### Using docker-compose (add to docker-compose.yml)
+```yaml
+environment:
+  - PUID=1001
+  - PGID=1001
 ```
 
 This is useful for:
