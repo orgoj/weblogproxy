@@ -256,18 +256,3 @@ func getLevel(record map[string]interface{}) int32 {
 	}
 	return 6 // Default to INFO level
 }
-
-// truncateString truncates a string to a maximum length, adding an ellipsis if truncated.
-func truncateString(s string, maxLength int) string {
-	if maxLength <= 0 {
-		return ""
-	}
-	const ellipsis = "...truncated"
-	if len(s) <= maxLength {
-		return s
-	}
-	if maxLength <= len(ellipsis) {
-		return s[:maxLength] // Not enough space for ellipsis, just cut
-	}
-	return s[:maxLength-len(ellipsis)] + ellipsis
-}

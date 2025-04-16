@@ -20,10 +20,11 @@ import (
 
 // FileLogger handles logging to a file with optional rotation.
 type FileLogger struct {
-	mu     sync.Mutex
-	writer io.WriteCloser // Can be *os.File or *lumberjack.Logger
-	format string         // "json" or "text"
-	name   string         // Added to store logger name
+	mu             sync.Mutex
+	writer         io.WriteCloser // Can be *os.File or *lumberjack.Logger
+	format         string         // "json" or "text"
+	name           string         // Added to store logger name
+	maxMessageSize int            // Max size in bytes, 0 means unlimited
 }
 
 // NewFileLogger creates a new FileLogger instance.
@@ -112,10 +113,17 @@ func NewFileLogger(cfg config.LogDestination) (*FileLogger, error) {
 		writer = file
 	}
 
+	// Determine max message size
+	maxSize := cfg.MaxMessageSize
+	if maxSize <= 0 { // Default for file is 4096 if not set or invalid
+		maxSize = 4096
+	}
+
 	return &FileLogger{
-		writer: writer,
-		format: cfg.Format,
-		name:   cfg.Name, // Store the name
+		writer:         writer,
+		format:         cfg.Format,
+		name:           cfg.Name, // Store the name
+		maxMessageSize: maxSize,
 	}, nil
 }
 
@@ -136,9 +144,19 @@ func (l *FileLogger) Log(record map[string]interface{}) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal log record to JSON: %w", err)
 		}
+		// Check size *before* appending newline for JSON
+		if l.maxMessageSize > 0 && len(line) > l.maxMessageSize {
+			fmt.Printf("[WARN] Log message for destination '%s' truncated (JSON format). Size: %d > Limit: %d\n", l.name, len(line), l.maxMessageSize)
+			line = createTruncatedJSONRecord(record, l.maxMessageSize)
+		}
 		line = append(line, '\n') // Append newline for JSON Lines format
 	} else { // format == "text"
 		line = l.formatText(record)
+		// Check size *before* appending newline for text
+		if l.maxMessageSize > 0 && len(line) > l.maxMessageSize {
+			fmt.Printf("[WARN] Log message for destination '%s' truncated (Text format). Size: %d > Limit: %d\n", l.name, len(line), l.maxMessageSize)
+			line = []byte(truncateString(string(line), l.maxMessageSize))
+		}
 		line = append(line, '\n')
 	}
 
@@ -282,3 +300,64 @@ func (l *FileLogger) Name() string {
 
 // Ensure FileLogger implements the Logger interface.
 var _ Logger = (*FileLogger)(nil)
+
+// createTruncatedJSONRecord creates a minimal JSON record indicating truncation.
+func createTruncatedJSONRecord(originalRecord map[string]interface{}, maxSize int) []byte {
+	truncatedRecord := make(map[string]interface{})
+
+	// Add error message
+	truncatedRecord["_log_error"] = "Original message truncated due to size limit"
+
+	// Copy essential fields, potentially truncating long strings
+	essentialFields := []string{"time", "level", "hostname", "pid", "name", "site_id", "ip_address", "user_agent", "x_forwarded_for"}
+	// Estimate overhead for the error message and basic JSON structure
+	overheadEstimate := 200
+	// Give some buffer for each field key/quotes/commas
+	perFieldBuffer := 30
+	availableStringSpace := maxSize - overheadEstimate - (len(essentialFields) * perFieldBuffer)
+	if availableStringSpace < 50 { // Ensure some minimum space
+		availableStringSpace = 50
+	}
+	// Allocate space per field roughly
+	maxLengthPerField := availableStringSpace / len(essentialFields)
+	if maxLengthPerField < 10 {
+		maxLengthPerField = 10
+	}
+
+	for _, key := range essentialFields {
+		if val, ok := originalRecord[key]; ok {
+			if strVal, ok := val.(string); ok {
+				truncatedRecord[key] = truncateString(strVal, maxLengthPerField)
+			} else {
+				// Keep non-string essential fields as they are (usually small)
+				truncatedRecord[key] = val
+			}
+		}
+	}
+
+	// Marshal the truncated record
+	line, err := json.Marshal(truncatedRecord)
+	if err != nil {
+		// Fallback to a very basic error message if marshaling fails
+		failureMsg := fmt.Sprintf(`{"_log_error":"Original message truncated and failed to create detailed truncation record: %v"}`, err)
+		// Ensure even the fallback fits (highly unlikely to fail here)
+		if len(failureMsg) > maxSize {
+			return []byte(failureMsg[:maxSize])
+		}
+		return []byte(failureMsg)
+	}
+
+	// Final check if the generated truncated message is still too big (e.g., due to many fields)
+	if len(line) > maxSize {
+		// Just return the error part, truncated if needed
+		errPart := `{"_log_error":"Original message truncated due to size limit (details also truncated)"}`
+		if len(errPart) > maxSize {
+			return []byte(errPart[:maxSize])
+		}
+		return []byte(errPart)
+	}
+
+	return line
+}
+
+// truncateString removed - moved to utils.go

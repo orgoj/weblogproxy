@@ -1,7 +1,5 @@
 # TODO List (ALWAYS READ BEFORE STARTING WORK: @todo_rules.mdc)
 
-## GELF
-
 ## E2E Tests
 
 - [-] Test output file formats (JSON/Text) by reading log files after E2E test.

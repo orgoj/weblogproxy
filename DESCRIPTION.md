@@ -72,7 +72,7 @@
 						- `type`: Destination type ('file', 'syslog', or 'gelf'). New types can be added by implementing the Logger interface.
 						- `enabled`: Boolean flag to enable/disable the destination.
 						- Type-specific settings:
-						    - `file`: `path`, `format` ('json' or 'text'), `rotation` (optional: max_size in MB as a string value with minimum 1MB due to Lumberjack library limitations, `max_age` in duration format (e.g., "1d" for 1 day), `max_backups`, `compress`). The 'json' format outputs Bunyan-compatible JSON Lines.
+						    - `file`: `path`, `format` ('json' or 'text'), `rotation` (optional: max_size in MB as a string value with minimum 1MB due to Lumberjack library limitations, `max_age` in duration format (e.g., "1d" for 1 day), `max_backups`, `compress`), `max_message_size` (optional, integer, max bytes per log line, default 4096; for JSON, replaces oversized messages with an error record). The 'json' format outputs Bunyan-compatible JSON Lines.
 						    - `syslog`: Forwards logs to a syslog server for centralized logging.
 						    - `gelf`: `host`, `port`, `protocol` ('udp' or 'tcp'), `compression` ('gzip', 'zlib', or 'none'), `max_message_size` (optional, integer, max bytes per message, default depends on protocol). GELF output adheres to GELF v1.1 specification (e.g., custom fields prefixed with `_`). Also supports optional `additional_fields` to add custom fields to all GELF messages.
 						- `add_log_data`: Optional list of actions to enrich log data specific to this destination, applied *after* rule-based enrichment but *before* merging client data. Uses the same structure as `add_log_data` in `log_config`. Can overwrite fields set by rules or add new ones.

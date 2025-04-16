@@ -1,1 +1,19 @@
- 
+MUST READ THESE RULES FOR GIT COMMIT BEFORE EVERY COMMIT
+
+# 🚨 MANDATORY: Always Follow These Rules Before Every Git Commit
+- Run all tests as defined in `mise.toml`: `mise test`, `mise security-check`, `mise docker-test`
+- If there are any errors or warnings, fix them and re-run the tests until everything passes automatically
+- Once everything is resolved, continue with the following steps:
+- IMPORTANT: For completed tasks:
+  1. REMOVE completed items from `TODO.md` completely (not just marking them with [x])
+  2. ADD a corresponding entry to `CHANGELOG.md` in the appropriate section (Added/Changed/Fixed)
+- If the change is relevant to the user, also update `README.md`
+- Update project documentation in **all** relevant `.md` files
+- Commit all changes:  
+  ```bash
+  git add .  
+  git commit -m "Short summary of changes (max 100 characters)
+
+  Detailed description of what was changed"
+  ```
+- Describe what you did in the chat, and wait for the next task 

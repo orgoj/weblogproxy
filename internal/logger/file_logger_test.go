@@ -2,11 +2,13 @@ package logger
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -422,3 +424,137 @@ func TestFileLogger_Log_Rotation(t *testing.T) {
 
 // TODO: Add test for MaxAge rotation
 // TODO: Add test for Compress=true rotation
+
+// --- Helper for Truncation Test ---
+type mockWriteCloser struct {
+	buf bytes.Buffer
+}
+
+func (m *mockWriteCloser) Write(p []byte) (n int, err error) {
+	return m.buf.Write(p)
+}
+
+func (m *mockWriteCloser) Close() error {
+	return nil // No-op for mock
+}
+
+func (m *mockWriteCloser) String() string {
+	return m.buf.String()
+}
+
+func TestFileLoggerTruncation(t *testing.T) {
+	tests := []struct {
+		name            string
+		format          string
+		maxSize         int
+		record          map[string]interface{}
+		expectTruncated bool   // For JSON, means replaced with error msg
+		expectSubstring string // Substring to check in the output
+	}{
+		{
+			name:            "Text below limit",
+			format:          "text",
+			maxSize:         100,
+			record:          map[string]interface{}{"level": 30, "msg": "short text msg", "val": 1},
+			expectTruncated: false,
+			expectSubstring: "short text msg val=1",
+		},
+		{
+			name:            "Text exceeds limit",
+			format:          "text",
+			maxSize:         50, // Short limit
+			record:          map[string]interface{}{"level": 30, "msg": "this is a very long text message that will be truncated", "val": 123},
+			expectTruncated: true,
+			expectSubstring: "...truncated",
+		},
+		{
+			name:            "JSON below limit",
+			format:          "json",
+			maxSize:         200,
+			record:          map[string]interface{}{"level": 30, "msg": "short json msg", "val": 1, "site_id": "site1"},
+			expectTruncated: false,
+			expectSubstring: `"msg":"short json msg"`, // Check original content
+		},
+		{
+			name:    "JSON exceeds limit",
+			format:  "json",
+			maxSize: 100, // Very short limit for JSON
+			record: map[string]interface{}{
+				"level":      40,
+				"msg":        "this json message is definitely way too long to fit into the small limit provided",
+				"val":        12345,
+				"site_id":    "long_site_id_example",
+				"user_agent": "Some Very Long User Agent String/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+			},
+			expectTruncated: true,
+			expectSubstring: `"_log_error":"Original message truncated`, // Check for error message
+		},
+		{
+			name:    "JSON exceeds limit - check essential fields",
+			format:  "json",
+			maxSize: 250, // Slightly larger limit
+			record: map[string]interface{}{
+				"time":       "2023-01-01T10:00:00Z",
+				"level":      50,
+				"hostname":   "server01",
+				"pid":        999,
+				"name":       "TestLogger",
+				"site_id":    "site-abc",
+				"ip_address": "192.168.1.100",
+				"user_agent": "ShortAgent",
+				"extra_data": strings.Repeat("A", 300), // This makes it exceed the limit
+			},
+			expectTruncated: true,
+			expectSubstring: `"site_id":"site-abc"`, // Check if essential field is present
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockWriter := &mockWriteCloser{}
+			lgr := &FileLogger{
+				mu:             sync.Mutex{},
+				writer:         mockWriter,
+				format:         tt.format,
+				name:           "test-trunc",
+				maxMessageSize: tt.maxSize,
+			}
+
+			err := lgr.Log(tt.record)
+			if err != nil {
+				t.Fatalf("Log() failed: %v", err)
+			}
+
+			output := mockWriter.String()
+			if !strings.Contains(output, tt.expectSubstring) {
+				t.Errorf("Output does not contain expected substring %q.\nOutput:\n%s", tt.expectSubstring, output)
+			}
+
+			// For JSON truncation, verify it's still valid JSON
+			if tt.format == "json" && tt.expectTruncated {
+				var jsonData map[string]interface{}
+				// Trim newline before unmarshaling
+				if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &jsonData); err != nil {
+					t.Errorf("Truncated JSON is not valid: %v.\nOutput:\n%s", err, output)
+				}
+				if _, ok := jsonData["_log_error"]; !ok {
+					t.Errorf("Truncated JSON missing '_log_error' field.\nOutput:\n%s", output)
+				}
+			}
+
+			// Check length constraint (approximate for JSON, exact for text if truncated)
+			outputLen := len(strings.TrimSpace(output))
+			if tt.expectTruncated && outputLen > tt.maxSize {
+				// Allow slight overshoot for JSON error message generation, but not excessive
+				allowedOvershoot := 50 // Generous buffer
+				if tt.format != "json" || outputLen > tt.maxSize+allowedOvershoot {
+					t.Errorf("Output length %d exceeds maxSize %d (format: %s).\nOutput:\n%s", outputLen, tt.maxSize, tt.format, output)
+				}
+			}
+
+			if err := lgr.Close(); err != nil {
+				t.Errorf("Close() failed: %v", err)
+			}
+		})
+	}
+}

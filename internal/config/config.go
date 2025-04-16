@@ -83,6 +83,8 @@ type LogDestination struct {
 	Type    string `yaml:"type"` // Mandatory: file, gelf
 	Enabled bool   `yaml:"enabled"`
 
+	MaxMessageSize int `yaml:"max_message_size,omitempty"` // Optional: Max message size in bytes (default depends on type: file=4096, gelf-udp=8192, gelf-tcp=unlimited)
+
 	// File specific
 	Path     string      `yaml:"path,omitempty"`     // Mandatory for type: file
 	Format   string      `yaml:"format,omitempty"`   // Mandatory for type: file (json or text)
@@ -93,7 +95,6 @@ type LogDestination struct {
 	Port            int    `yaml:"port,omitempty"`             // Mandatory for type: gelf
 	Protocol        string `yaml:"protocol,omitempty"`         // Optional for type: gelf (udp or tcp, default udp)
 	CompressionType string `yaml:"compression_type,omitempty"` // Optional for type: gelf (gzip, zlib, none, default none)
-	MaxMessageSize  int    `yaml:"max_message_size,omitempty"` // Optional: Max message size in bytes for GELF (UDP default 8192, TCP unlimited=0)
 
 	AddLogData []AddLogDataSpec `yaml:"add_log_data,omitempty"`
 }

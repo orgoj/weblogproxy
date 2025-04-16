@@ -7,6 +7,7 @@
 - Added server configuration for rate limits, CORS, additional HTTP headers
 - Implemented compression for GELF (gzip, zlib, none) with unit tests
 - Implemented GELF message truncation based on `max_message_size` configuration.
+- Implemented message truncation for File logger (text and JSON formats) based on `max_message_size` configuration.
 
 ### Changed
 - 

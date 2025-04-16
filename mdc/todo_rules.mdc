@@ -1,1 +1,18 @@
- 
+MUST READ THESE RULES BEFORE DOING ANY TODO TASK IN TODO.md
+
+# 🚨 MANDATORY: Follow These Rules Before Doing Any TODO Task
+- Read the first block of tasks
+- Identify related tasks that can be done simultaneously
+- Mark tasks you are working on with `[-]`
+- Read [DESCRIPTION.md](mdc:DESCRIPTION.md) for general application concept
+- Perform a code analysis to determine how to resolve the tasks
+- Find the latest information and procedures available online
+- Propose solutions with multiple options, write them to the user, and wait for approval to proceed
+- Process user feedback (if any) and repeat the previous step
+- If you have a work order, start implementation following the approved procedure
+- Work automatically, simply, and cleanly, as a professional senior developer
+- When a task is complete:
+  1. First, mark it as done with `[x]` in TODO.md
+  2. Add corresponding entries to CHANGELOG.md
+  3. REMOVE the completed tasks entirely from TODO.md (don't just mark them as [x])
+  4. Follow `@commit_rules.mdc` for the commit process 
