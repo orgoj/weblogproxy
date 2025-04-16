@@ -2,5 +2,10 @@
     "debug.javascript.defaultRuntimeExecutable": {
         "pwa-node": "/home/michael/.local/share/mise/shims/node"
     },
-    "shellcheck.executablePath": "/home/michael/.local/share/mise/shims/shellcheck"
+    "shellcheck.executablePath": "/home/michael/.local/share/mise/shims/shellcheck",
+    "go.goroot": "/home/michael/.local/share/mise/installs/go/1.22.0",
+    "go.alternateTools": {
+        "go": "/home/michael/.local/share/mise/shims/go",
+        "gopls": "/home/michael/.local/share/mise/shims/gopls"
+    }
 }

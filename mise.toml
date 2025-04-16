@@ -31,7 +31,7 @@ outputs = { auto = true }
 description = "Build the weblogproxy binary"
 run = "go build -o weblogproxy ./cmd/weblogproxy"
 depends = ["deps"]
-sources = ["go.*", "cmd/**/*.go", "internal/**/*.go"]
+sources = ["go.*", "cmd/**/*", "internal/**/*"]
 outputs = "weblogproxy"
 
 [tasks.run]
@@ -69,7 +69,7 @@ run = "golangci-lint run"
 [tasks.docker-build]
 description = "Build Docker image"
 run = "docker build -t weblogproxy:latest ."
-sources = ["Dockerfile", "cmd/**/*.go", "internal/**/*.go"]
+sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 
 [tasks.docker-run]
@@ -80,7 +80,7 @@ depends = ["docker-build"]
 [tasks.docker-test]
 description = "Test Docker image build and functionality"
 run = "./scripts/docker-test.sh"
-sources = ["Dockerfile", "cmd/**/*.go", "internal/**/*.go"]
+sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 depends = ["docker-build"]
 
