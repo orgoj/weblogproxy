@@ -22,11 +22,15 @@ outputs = { auto = true }
 
 [tasks.format]
 description = "Format Go code using gofmt on all .go files recursively"
+sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
+outputs = { auto = true }
 run = "gofmt -w ."
 
 [tasks.lint]
 description = "Run linters"
 run = "golangci-lint run"
+sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
+outputs = { auto = true }
 depends = ["format"]
 
 [tasks.build]
@@ -55,10 +59,14 @@ depends = ["config-check", "deps"]
 [tasks.test-unit]
 description = "Spustí pouze unit testy"
 run = "go test -v ./..."
+sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
+outputs = { auto = true }
 
 [tasks.test-e2e]
 description = "Spustí pouze E2E testy"
 run = "./test/run.sh"
+sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
+outputs = { auto = true }
 depends = ["build"]
 
 [tasks.test]
