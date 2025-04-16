@@ -3,7 +3,6 @@
 ## GELF
 
 - [ ] Implement log truncation based on MaxBodySize for GELF and other formats
-- [x] Implement compression for GELF (gzip, zlib, none)
 
 ## E2E Tests
 
