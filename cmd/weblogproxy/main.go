@@ -20,7 +20,8 @@ import (
 func main() {
 	// --- Configuration --- //
 	configPath := flag.String("config", "config/config.yaml", "Path to the configuration file")
-	validateOnly := flag.Bool("validate", false, "Validate configuration and exit")
+	testConfigShort := flag.Bool("t", false, "Test configuration and exit (nginx style)")
+	testConfigLong := flag.Bool("test", false, "Test configuration and exit (nginx style)")
 	showVersion := flag.Bool("version", false, "Show version information and exit")
 	flag.Parse()
 
@@ -42,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *validateOnly {
+	if *testConfigShort || *testConfigLong {
 		// Validation was already done above
 		fmt.Printf("Configuration '%s' is valid.\n", *configPath)
 		os.Exit(0)

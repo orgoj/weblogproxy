@@ -291,3 +291,15 @@ Manager. I developed the entire project using the Cursor IDE, without
 any prior experience in the Go programming language. I didn't write a 
 single line of code and was just learning to use the editor.
 
+### Validating Configuration
+
+To validate your configuration file without starting the server (like nginx -t), run:
+
+```bash
+./weblogproxy -t -config config/example.yaml
+# or
+./weblogproxy --test -config config/example.yaml
+```
+
+If the configuration is valid, the program will print a confirmation and exit with code 0. If invalid, it will print an error and exit with code 1.
+

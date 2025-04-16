@@ -25,8 +25,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
               -X github.com/orgoj/weblogproxy/internal/version.CommitHash=${COMMIT_HASH}" \
     -o bin/weblogproxy ./cmd/weblogproxy
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o bin/config-validator ./cmd/config-validator
-
 # Final stage
 FROM alpine:3.21
 
@@ -43,7 +41,7 @@ RUN mkdir -p /app && \
     mkdir -p /var/lib/weblogproxy
 
 # Copy our binaries
-COPY --from=builder /app/bin/* /usr/local/bin/
+COPY --from=builder /app/bin/weblogproxy /usr/local/bin/
 
 # Copy entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh

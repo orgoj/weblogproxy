@@ -2,7 +2,6 @@
 
 ## URGENT
 
-- [ ] na co je config-validator, config si ma testovat sama aplikace na option, tuto funkci musi mit aby se dal udelat reload configu
 - [ ] setup linting
 - [ ] setup code formatting
 - [ ] security tests
