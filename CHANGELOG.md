@@ -4,6 +4,8 @@
 
 ### Added
 - Implemented GELF Logger for sending logs to Graylog servers with support for both UDP and TCP protocols
+- Added server configuration for rate limits, CORS, additional HTTP headers
+- Implemented compression for GELF (gzip, zlib, none) with unit tests
 
 ### Changed
 - 

@@ -11,6 +11,15 @@ import (
 	"gopkg.in/Graylog2/go-gelf.v2/gelf"
 )
 
+// Variables for factories to allow mocking in tests
+var gelfUDPWriterFactory = gelf.NewUDPWriter
+var gelfTCPWriterFactory = gelf.NewTCPWriter
+
+// Function to set compression, can be mocked in tests
+var setUDPCompression = func(writer *gelf.UDPWriter, compType gelf.CompressType) {
+	writer.CompressionType = compType
+}
+
 // GelfLogger implements the Logger interface for GELF logs
 type GelfLogger struct {
 	name       string
@@ -43,14 +52,14 @@ func NewGelfLogger(cfg config.LogDestination) (*GelfLogger, error) {
 
 	// Create the appropriate writer based on protocol
 	if cfg.Protocol == "tcp" {
-		tcpWriter, err := gelf.NewTCPWriter(addr)
+		tcpWriter, err := gelfTCPWriterFactory(addr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GELF TCP writer: %w", err)
 		}
 		writer = tcpWriter
 	} else {
 		// Default to UDP
-		udpWriter, err := gelf.NewUDPWriter(addr)
+		udpWriter, err := gelfUDPWriterFactory(addr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GELF UDP writer: %w", err)
 		}
@@ -58,12 +67,12 @@ func NewGelfLogger(cfg config.LogDestination) (*GelfLogger, error) {
 		// Set compression based on config
 		switch cfg.CompressionType {
 		case "gzip":
-			udpWriter.CompressionType = gelf.CompressGzip
+			setUDPCompression(udpWriter, gelf.CompressGzip)
 		case "zlib":
-			udpWriter.CompressionType = gelf.CompressZlib
+			setUDPCompression(udpWriter, gelf.CompressZlib)
 		default:
 			// Default to none
-			udpWriter.CompressionType = gelf.CompressNone
+			setUDPCompression(udpWriter, gelf.CompressNone)
 		}
 
 		writer = udpWriter
