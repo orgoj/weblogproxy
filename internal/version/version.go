@@ -3,7 +3,7 @@ package version
 // Version information
 var (
 	// Version is the current version of weblogproxy
-	Version = "0.10.0"
+	Version = "0.10.2"
 	// BuildDate is the date when the binary was built
 	BuildDate = "undefined"
 	// CommitHash is the git commit hash when the binary was built
