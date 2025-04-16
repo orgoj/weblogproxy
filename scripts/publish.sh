@@ -59,7 +59,7 @@ git tag "$TAG_NAME"
 
 # 2. Push do GitHubu
 echo "Nahrávám změny a tag do GitHubu..."
-git push origin main
+git push origin master
 git push origin "$TAG_NAME"
 
 # 3. Build Docker image
