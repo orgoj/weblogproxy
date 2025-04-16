@@ -11,6 +11,7 @@ All significant changes to the weblogproxy project will be documented in this fi
 - Modified logger.js template to avoid generating scriptsToInject when none are defined
 - Added server.protocol configuration option to control URL schema (http/https)
 - Changed JavaScript global object name from window.weblogproxy to window.wlp and made it configurable
+- Improved entrypoint.sh to correctly detect binary paths when running in Docker
 
 
 ## [0.9.1] - 2025-04-10
