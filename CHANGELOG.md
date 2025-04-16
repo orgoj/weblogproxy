@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added
-- 
+- Linting setup: project now uses golangci-lint for static code analysis. All lint errors fixed.
 
 ### Changed
 - 

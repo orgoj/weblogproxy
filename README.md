@@ -230,6 +230,10 @@ The rule processor follows these key principles:
 
 ## Development
 
+### Linting
+
+This project uses [golangci-lint](https://golangci-lint.run/) for static code analysis. Run `mise lint` before every commit to ensure code quality. All code must pass linting with no errors.
+
 ### Required Tools
 
 * **Go**: For building the application from source.
