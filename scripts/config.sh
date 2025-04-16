@@ -11,7 +11,7 @@ fi
 
 # Extract version information
 VERSION=$(grep -m 1 'Version = ' $VERSION_FILE | sed 's/.*Version = "\(.*\)".*/\1/')
-BUILD_DATE=$(date -u +"%Y-%m-%d")
+BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S%z")
 COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 if [ -z "$VERSION" ]; then

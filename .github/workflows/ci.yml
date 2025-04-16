@@ -61,7 +61,7 @@ jobs:
           else
             VERSION=$(grep -m 1 'Version = ' internal/version/version.go | sed 's/.*Version = "\(.*\)".*/\1/')
           fi
-          BUILD_DATE=$(date -u +'%Y-%m-%d')
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%S%z')
           COMMIT_HASH=$(git rev-parse --short HEAD)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
