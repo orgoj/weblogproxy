@@ -109,16 +109,30 @@ cp $CHANGELOG_FILE "${CHANGELOG_FILE}.bak"
 # Prepare the new version header
 NEW_VERSION_HEADER="## [$NEW_VERSION] - $TODAY"
 
-# Move unreleased/dev section in CHANGELOG.md under new version header
-if grep -q "^## \[Unreleased\]" "$CHANGELOG_FILE"; then
-    awk -v newver="$NEW_VERSION_HEADER" '
-        BEGIN { unreleased=0 }
-        /^## \[Unreleased\]/ { print newver; unreleased=1; next }
-        /^## \[/ && unreleased { unreleased=0 }
-        !unreleased { print }
-    ' "$CHANGELOG_FILE" >"${CHANGELOG_FILE}.new"
-    mv "${CHANGELOG_FILE}.new" "$CHANGELOG_FILE"
+# Check if ## [Unreleased] section exists
+if ! grep -q "^## \[Unreleased\]" "$CHANGELOG_FILE"; then
+    echo "Error: '## [Unreleased]' section not found in $CHANGELOG_FILE."
+    echo "Cannot automatically update changelog header. Please check the file format."
+    exit 1
 fi
+
+# Replace the '## [Unreleased]' line with the new version header using sed
+echo "Updating header in $CHANGELOG_FILE..."
+sed -i "s|^## \[Unreleased\].*|$NEW_VERSION_HEADER|" "$CHANGELOG_FILE"
+
+# Check if sed command was successful
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to update header in $CHANGELOG_FILE with sed."
+    # Attempt to restore backup if it exists (assuming backup was made earlier)
+    if [ -f "${CHANGELOG_FILE}.bak" ]; then
+        echo "Restoring from backup..."
+        mv "${CHANGELOG_FILE}.bak" "$CHANGELOG_FILE"
+    fi
+    exit 1
+fi
+
+# Remove the backup file created earlier if sed was successful
+rm -f "${CHANGELOG_FILE}.bak"
 
 echo
 echo "Version has been updated to $NEW_VERSION"
