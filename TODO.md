@@ -2,7 +2,6 @@
 
 ## URGENT
 
-- [x] mise run docs - je to k necemu, bude to neco generovat, chybi swag, podle men je to zbytecne mame README a prehled o app si AI udela
 - [ ] na co je config-validator, config si ma testovat sama aplikace na option, tuto funkci musi mit aby se dal udelat reload configu
 - [ ] setup linting
 - [ ] setup code formatting
