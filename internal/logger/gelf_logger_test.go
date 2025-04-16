@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/orgoj/weblogproxy/internal/config"
@@ -237,6 +238,186 @@ func TestGelfCompression(t *testing.T) {
 			if tt.protocol == "udp" && capturedCompressionType != tt.expectedType {
 				t.Errorf("Expected compression type %v, got %v",
 					tt.expectedType, capturedCompressionType)
+			}
+		})
+	}
+}
+
+// mockGelfWriter is a mock gelf.Writer for testing
+type mockGelfWriter struct {
+	lastMessage *gelf.Message
+	writeCalled bool
+	closeCalled bool
+	returnError error // Optional error to return from WriteMessage
+}
+
+func (m *mockGelfWriter) WriteMessage(msg *gelf.Message) error {
+	m.writeCalled = true
+	m.lastMessage = msg
+	return m.returnError
+}
+
+// Write implements io.Writer (needed if gelf.Writer implicitly satisfies it somewhere)
+func (m *mockGelfWriter) Write(p []byte) (n int, err error) {
+	// This mock doesn't need to implement io.Writer functionality for this test
+	return len(p), nil
+}
+
+func (m *mockGelfWriter) Close() error {
+	m.closeCalled = true
+	return nil
+}
+
+func TestGelfTruncation(t *testing.T) {
+	// Override writer factories for this test
+	origUDPWriterFactory := gelfUDPWriterFactory
+	origTCPWriterFactory := gelfTCPWriterFactory
+	defer func() {
+		gelfUDPWriterFactory = origUDPWriterFactory
+		gelfTCPWriterFactory = origTCPWriterFactory
+	}()
+
+	mockWriter := &mockGelfWriter{}
+	gelfUDPWriterFactory = func(addr string) (*gelf.UDPWriter, error) {
+		// Return a dummy writer, we'll replace it later
+		return &gelf.UDPWriter{}, nil
+	}
+	gelfTCPWriterFactory = func(addr string) (*gelf.TCPWriter, error) {
+		// Return a dummy writer, we'll replace it later
+		return &gelf.TCPWriter{}, nil
+	}
+
+	// Define test cases
+	tests := []struct {
+		name             string
+		config           config.LogDestination
+		record           map[string]interface{}
+		expectedShortLen int
+		expectedFullLen  int
+		expectedShortEnd string
+		expectedFullEnd  string
+	}{
+		{
+			name: "No truncation (UDP default size)",
+			config: config.LogDestination{
+				Name: "udp-default", Type: "gelf", Host: "localhost", Port: 12201,
+			},
+			record: map[string]interface{}{
+				"message":      "short message",
+				"full_message": "this is a longer full message",
+			},
+			expectedShortLen: 13, // len("short message")
+			expectedFullLen:  29, // len("this is a longer full message")
+		},
+		{
+			name: "No truncation (TCP unlimited)",
+			config: config.LogDestination{
+				Name: "tcp-unlimited", Type: "gelf", Host: "localhost", Port: 12201, Protocol: "tcp",
+			},
+			record: map[string]interface{}{
+				"message":      "short message tcp",
+				"full_message": "this is a longer full message for tcp",
+			},
+			expectedShortLen: 17, // len("short message tcp")
+			expectedFullLen:  37, // len("this is a longer full message for tcp")
+		},
+		{
+			name: "Truncate Short only (exceeds available)",
+			config: config.LogDestination{
+				Name: "trunc-short", Type: "gelf", Host: "localhost", Port: 12201, MaxMessageSize: 1080, // Available = 1080 - 1024 = 56
+			},
+			record: map[string]interface{}{
+				"message":      "this is a very long short message that will certainly exceed the available limit",
+				"full_message": "this full message should be cleared",
+			},
+			expectedShortLen: 56,
+			expectedFullLen:  0, // Full message cleared
+			expectedShortEnd: "...truncated",
+		},
+		{
+			name: "Truncate Full only (Short fits, Full exceeds remaining)",
+			config: config.LogDestination{
+				Name: "trunc-full", Type: "gelf", Host: "localhost", Port: 12201, MaxMessageSize: 1100, // Available = 1100 - 1024 = 76
+			},
+			record: map[string]interface{}{
+				"message":      "short message fits",                                                                      // len=18
+				"full_message": "this very long full message will need truncation because it exceeds the remaining space", // Remaining = 76 - 18 = 58
+			},
+			expectedShortLen: 18,
+			expectedFullLen:  58,
+			expectedFullEnd:  "...truncated",
+		},
+		{
+			name: "Truncate Short and Full (very small limit)",
+			config: config.LogDestination{
+				Name: "trunc-both", Type: "gelf", Host: "localhost", Port: 12201, MaxMessageSize: 1050, // Available = 1050 - 1024 = 26
+			},
+			record: map[string]interface{}{
+				"message":      "this short message is too long",
+				"full_message": "this full message is also too long",
+			},
+			expectedShortLen: 26,
+			expectedFullLen:  0,
+			expectedShortEnd: "...truncated",
+		},
+		{
+			name: "Truncate Short (not enough space for ellipsis)",
+			config: config.LogDestination{
+				Name: "trunc-no-ellipsis", Type: "gelf", Host: "localhost", Port: 12201, MaxMessageSize: 1030, // Available = 1030 - 1024 = 6
+			},
+			record: map[string]interface{}{
+				"message":      "this short message is too long",
+				"full_message": "this full message is also too long",
+			},
+			expectedShortLen: 6, // Just cut
+			expectedFullLen:  0,
+			expectedShortEnd: "this s", // Expected ending after cutting
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockWriter.lastMessage = nil // Reset mock writer
+			mockWriter.writeCalled = false
+
+			logger, err := NewGelfLogger(tt.config)
+			if err != nil {
+				t.Fatalf("NewGelfLogger() error = %v", err)
+			}
+			logger.writer = mockWriter // Replace the actual writer with the mock
+
+			err = logger.Log(tt.record)
+			if err != nil {
+				t.Fatalf("logger.Log() error = %v", err)
+			}
+
+			if !mockWriter.writeCalled {
+				t.Fatal("WriteMessage was not called")
+			}
+
+			if mockWriter.lastMessage == nil {
+				t.Fatal("Last message is nil")
+			}
+
+			// Check lengths
+			if len(mockWriter.lastMessage.Short) != tt.expectedShortLen {
+				t.Errorf("Expected Short length %d, got %d (value: %q)", tt.expectedShortLen, len(mockWriter.lastMessage.Short), mockWriter.lastMessage.Short)
+			}
+			if len(mockWriter.lastMessage.Full) != tt.expectedFullLen {
+				t.Errorf("Expected Full length %d, got %d (value: %q)", tt.expectedFullLen, len(mockWriter.lastMessage.Full), mockWriter.lastMessage.Full)
+			}
+
+			// Check endings if truncation happened
+			if tt.expectedShortEnd != "" && !strings.HasSuffix(mockWriter.lastMessage.Short, tt.expectedShortEnd) {
+				t.Errorf("Expected Short to end with %q, got %q", tt.expectedShortEnd, mockWriter.lastMessage.Short)
+			}
+			if tt.expectedFullEnd != "" && !strings.HasSuffix(mockWriter.lastMessage.Full, tt.expectedFullEnd) {
+				t.Errorf("Expected Full to end with %q, got %q", tt.expectedFullEnd, mockWriter.lastMessage.Full)
+			}
+
+			// logger.Close() // Clean up
+			if err := logger.Close(); err != nil {
+				t.Errorf("logger.Close() returned an unexpected error: %v", err)
 			}
 		})
 	}

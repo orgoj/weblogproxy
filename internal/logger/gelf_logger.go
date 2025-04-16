@@ -22,10 +22,11 @@ var setUDPCompression = func(writer *gelf.UDPWriter, compType gelf.CompressType)
 
 // GelfLogger implements the Logger interface for GELF logs
 type GelfLogger struct {
-	name       string
-	writer     gelf.Writer
-	hostName   string
-	addLogData []config.AddLogDataSpec
+	name           string
+	writer         gelf.Writer
+	hostName       string
+	addLogData     []config.AddLogDataSpec
+	maxMessageSize int // Max size in bytes, 0 means unlimited
 }
 
 // NewGelfLogger creates a new GELF logger
@@ -78,11 +79,20 @@ func NewGelfLogger(cfg config.LogDestination) (*GelfLogger, error) {
 		writer = udpWriter
 	}
 
+	// Determine max message size based on protocol and config
+	maxSize := cfg.MaxMessageSize
+	if cfg.Protocol != "tcp" && maxSize <= 0 { // UDP defaults to 8192 if not set or invalid
+		maxSize = 8192
+	} else if cfg.Protocol == "tcp" && maxSize < 0 { // TCP defaults to 0 (unlimited) if negative
+		maxSize = 0
+	}
+
 	return &GelfLogger{
-		name:       cfg.Name,
-		writer:     writer,
-		hostName:   hostName,
-		addLogData: cfg.AddLogData,
+		name:           cfg.Name,
+		writer:         writer,
+		hostName:       hostName,
+		addLogData:     cfg.AddLogData,
+		maxMessageSize: maxSize,
 	}, nil
 }
 
@@ -125,6 +135,30 @@ func (g *GelfLogger) Log(record map[string]interface{}) error {
 		default:
 			// Convert to string for other types
 			msg.Extra[extraKey] = fmt.Sprintf("%v", v)
+		}
+	}
+
+	// Apply truncation if necessary
+	if g.maxMessageSize > 0 {
+		// Estimate the overhead of other fields (version, host, timestamp, level, extras keys/values)
+		// This is a rough estimate, adjust as needed. Let's assume 1024 bytes for overhead.
+		const overheadEstimate = 1024
+		availableSize := g.maxMessageSize - overheadEstimate
+
+		if availableSize < 0 {
+			availableSize = 0 // Avoid negative size if overhead is larger than max size
+		}
+
+		// Truncate Short message first if needed
+		if len(msg.Short) > availableSize {
+			msg.Short = truncateString(msg.Short, availableSize)
+			msg.Full = "" // Clear Full message if Short already exceeds limit
+		} else {
+			// If Short fits, calculate remaining space for Full message
+			remainingSize := availableSize - len(msg.Short)
+			if len(msg.Full) > remainingSize {
+				msg.Full = truncateString(msg.Full, remainingSize)
+			}
 		}
 	}
 
@@ -221,4 +255,19 @@ func getLevel(record map[string]interface{}) int32 {
 		}
 	}
 	return 6 // Default to INFO level
+}
+
+// truncateString truncates a string to a maximum length, adding an ellipsis if truncated.
+func truncateString(s string, maxLength int) string {
+	if maxLength <= 0 {
+		return ""
+	}
+	const ellipsis = "...truncated"
+	if len(s) <= maxLength {
+		return s
+	}
+	if maxLength <= len(ellipsis) {
+		return s[:maxLength] // Not enough space for ellipsis, just cut
+	}
+	return s[:maxLength-len(ellipsis)] + ellipsis
 }

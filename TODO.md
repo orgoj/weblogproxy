@@ -2,8 +2,6 @@
 
 ## GELF
 
-- [ ] Implement log truncation based on MaxBodySize for GELF and other formats
-
 ## E2E Tests
 
 - [-] Test output file formats (JSON/Text) by reading log files after E2E test.

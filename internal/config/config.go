@@ -93,6 +93,7 @@ type LogDestination struct {
 	Port            int    `yaml:"port,omitempty"`             // Mandatory for type: gelf
 	Protocol        string `yaml:"protocol,omitempty"`         // Optional for type: gelf (udp or tcp, default udp)
 	CompressionType string `yaml:"compression_type,omitempty"` // Optional for type: gelf (gzip, zlib, none, default none)
+	MaxMessageSize  int    `yaml:"max_message_size,omitempty"` // Optional: Max message size in bytes for GELF (UDP default 8192, TCP unlimited=0)
 
 	AddLogData []AddLogDataSpec `yaml:"add_log_data,omitempty"`
 }
