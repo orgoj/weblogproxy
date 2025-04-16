@@ -70,7 +70,7 @@ cp config/example.yaml config/config.yaml
 # Edit config/config.yaml to your needs
 
 # Run the application
-./weblogproxy -config config/config.yaml
+./weblogproxy --config config/config.yaml
 ```
 
 ## Configuration
@@ -304,9 +304,9 @@ single line of code and was just learning to use the editor.
 To validate your configuration file without starting the server (like nginx -t), run:
 
 ```bash
-./weblogproxy -t -config config/example.yaml
+./weblogproxy -t --config config/example.yaml
 # or
-./weblogproxy --test -config config/example.yaml
+./weblogproxy --test --config config/example.yaml
 ```
 
 If the configuration is valid, the program will print a confirmation and exit with code 0. If invalid, it will print an error and exit with code 1.

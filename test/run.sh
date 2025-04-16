@@ -127,7 +127,7 @@ rm -f "${LOG_FILE_PLAIN}"* "${LOG_FILE_ROTATION}"* "${PID_FILE}"
 
 # 3. Start application in background
 log_info "Starting weblogproxy in background..."
-"${APP_PATH}" -config "${CONFIG_PATH}" >"${APP_LOG}" 2>&1 &
+"${APP_PATH}" --config "${CONFIG_PATH}" >"${APP_LOG}" 2>&1 &
 echo $! >"${PID_FILE}"
 
 # Wait for server to start

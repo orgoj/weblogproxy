@@ -27,7 +27,7 @@ jobs:
         run: go test -v ./...
 
       - name: Validate example config
-        run: go run ./cmd/weblogproxy -config config/example.yaml -validate
+        run: go run ./cmd/weblogproxy --config config/example.yaml -validate
 
       - name: Install Hurl
         if: github.event_name != 'pull_request'

@@ -296,7 +296,7 @@
 			./weblogproxy --config config/config.yaml
 			
 			# Validate config without running
-			./weblogproxy -config /path/to/your/config.yaml -validate
+			./weblogproxy --config /path/to/your/config.yaml -validate
 			```
 		- ### Using Docker
 			```bash

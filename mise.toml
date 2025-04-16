@@ -20,28 +20,36 @@ run = "go mod tidy"
 sources = ["go.*"]
 outputs = { auto = true }
 
-#TODO proc je to samostatny program
-[tasks.config-check]
-description = "Validate configuration file"
-run = "go run ./cmd/config-validator/main.go ./config/example.yaml && go run ./cmd/config-validator/main.go ./config/test.yaml"
-sources = ["go.*", "cmd/**/*.go", "internal/**/*.go"]
-outputs = { auto = true }
+[tasks.format]
+description = "Format Go code using gofmt on all .go files recursively"
+run = "gofmt -w ."
+
+[tasks.lint]
+description = "Run linters"
+run = "golangci-lint run"
+depends = ["format"]
 
 [tasks.build]
 description = "Build the weblogproxy binary"
 run = "go build -o weblogproxy ./cmd/weblogproxy"
-depends = ["deps"]
+depends = ["deps", "format", "lint"]
 sources = ["go.*", "cmd/**/*", "internal/**/*"]
 outputs = "weblogproxy"
 
+[tasks.config-check]
+description = "Validate configuration file"
+run = "go run ./cmd/weblogproxy --test --config config/test.yaml"
+sources = ["go.*", "cmd/**/*.go", "internal/**/*.go"]
+outputs = { auto = true }
+
 [tasks.run]
 description = "Run the weblogproxy service with example config"
-run = "go run ./cmd/weblogproxy -config config/example.yaml"
+run = "go run ./cmd/weblogproxy --config config/example.yaml"
 depends = ["config-check", "deps"]
 
 [tasks.run-test]
 description = "Run the weblogproxy service with test config"
-run = "go run ./cmd/weblogproxy -config config/test.yaml"
+run = "go run ./cmd/weblogproxy --config config/test.yaml"
 depends = ["config-check", "deps"]
 
 [tasks.test-unit]
@@ -61,10 +69,6 @@ depends = ["test-unit", "test-e2e"]
 [tasks.test-all]
 description = "Spustí všechny testy pro app i docker"
 depends = ["test", "docker-test"]
-
-[tasks.lint]
-description = "Run linters"
-run = "golangci-lint run"
 
 [tasks.docker-build]
 description = "Build Docker image"
@@ -90,10 +94,6 @@ description = "Deploy Docker image to remote server via SSH (usage: mise run doc
 run = "./scripts/docker-ssh-copy.sh ${@}"
 depends = ["docker-test"]
 
-[tasks.version-bump]
-description = "Bump version (usage: mise run version-bump -- [major|minor|patch])"
-run = "./scripts/bump-version.sh -y ${@}"
-
 [tasks.version-bump-dev]
 description = "Set version to -dev and prepare [Unreleased] section in CHANGELOG.md"
 run = "./scripts/bump-version-dev.sh"
@@ -106,15 +106,3 @@ run = "./scripts/bump-version-release.sh ${@}"
 description = "Publish version (usage: mise run publish -- [version])"
 run = "./scripts/publish.sh ${@}"
 depends = ["test", "docker-test"]
-
-[tasks.clean]
-description = "Clean build artifacts"
-run = "rm -rf bin/ dist/"
-
-[tasks.dev]
-description = "Run development server with hot reload"
-run = "air -c .air.toml"
-
-[tasks.format]
-description = "Format Go code using gofmt on all .go files recursively"
-run = "gofmt -w ."
