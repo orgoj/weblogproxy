@@ -1,0 +1,16 @@
+---
+description: MUST READ THESE RULES BEFORE DOING ANY TODO TASK IN TODO.md
+globs: 
+alwaysApply: false
+---
+# 🚨 MANDATORY: Follow These Rules Before Doing Any TODO Task
+- Read the first block of tasks
+- Identify related tasks that can be done simultaneously
+- Mark tasks you are working on with `[-]`
+- Perform a code analysis to determine how to resolve the tasks
+- Find the latest information and procedures available online
+- Propose solutions with multiple options, write them to the user, and wait for approval to proceed
+- Process user feedback (if any) and repeat the previous step
+- If you have a work order, start implementation following the approved procedure
+- Work automatically, simply, and cleanly, as a professional senior developer
+- Once all tasks are completed, proceed according to `@commit_rules.mdc`
