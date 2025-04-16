@@ -48,13 +48,13 @@ fi
 
 echo "Current version: $VERSION"
 
-# Split version into components
-IFS='.' read -r -a VERSION_PARTS <<<"$VERSION"
+# Remove -dev suffix if present
+CLEAN_VERSION=$(echo "$VERSION" | sed 's/-dev$//')
+IFS='.' read -r -a VERSION_PARTS <<<"$CLEAN_VERSION"
 if [ ${#VERSION_PARTS[@]} -ne 3 ]; then
     echo "Error: Current version is not in semantic versioning format (MAJOR.MINOR.PATCH)"
     exit 1
 fi
-
 MAJOR=${VERSION_PARTS[0]}
 MINOR=${VERSION_PARTS[1]}
 PATCH=${VERSION_PARTS[2]}
@@ -109,24 +109,16 @@ cp $CHANGELOG_FILE "${CHANGELOG_FILE}.bak"
 # Prepare the new version header
 NEW_VERSION_HEADER="## [$NEW_VERSION] - $TODAY"
 
-# Add the new version entry after the first 4 lines (assuming header and empty lines)
-{
-    head -4 "$CHANGELOG_FILE"
-    echo "$NEW_VERSION_HEADER"
-    echo
-    echo "### Added"
-    echo "- "
-    echo
-    echo "### Changed"
-    echo "- "
-    echo
-    echo "### Fixed"
-    echo "- "
-    echo
-    tail -n +5 "$CHANGELOG_FILE"
-} >"${CHANGELOG_FILE}.new"
-
-mv "${CHANGELOG_FILE}.new" "$CHANGELOG_FILE"
+# Move unreleased/dev section in CHANGELOG.md under new version header
+if grep -q "^## \[Unreleased\]" "$CHANGELOG_FILE"; then
+    awk -v newver="$NEW_VERSION_HEADER" '
+        BEGIN { unreleased=0 }
+        /^## \[Unreleased\]/ { print newver; unreleased=1; next }
+        /^## \[/ && unreleased { unreleased=0 }
+        !unreleased { print }
+    ' "$CHANGELOG_FILE" >"${CHANGELOG_FILE}.new"
+    mv "${CHANGELOG_FILE}.new" "$CHANGELOG_FILE"
+fi
 
 echo
 echo "Version has been updated to $NEW_VERSION"

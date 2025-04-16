@@ -1,8 +1,6 @@
 # Changelog
 
-All significant changes to the weblogproxy project will be documented in this file.
-
-
+## [0.9.3] - 2025-04-16
 ## [0.9.2] - 2025-04-16
 
 - Fix blank logger.js template

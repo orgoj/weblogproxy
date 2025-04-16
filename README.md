@@ -303,3 +303,20 @@ To validate your configuration file without starting the server (like nginx -t),
 
 If the configuration is valid, the program will print a confirmation and exit with code 0. If invalid, it will print an error and exit with code 1.
 
+## Versioning and Release Process
+
+WebLogProxy používá dvoufázový proces verzování:
+
+- **Vývojová verze:**
+  - Spusť `mise run version-bump-dev`.
+  - Nastaví verzi s příponou `-dev` (např. `1.2.3-dev`) v `internal/version/version.go`.
+  - Připraví sekci `[Unreleased]` v `CHANGELOG.md`.
+  - Všechny buildy a Docker image budou označeny jako dev.
+
+- **Release verze:**
+  - Spusť `mise run version-bump-release -- -y patch` (nebo `minor`/`major`).
+  - Odstraní `-dev` z verze, posune obsah `[Unreleased]` do nové sekce s číslem verze a datem v changelogu.
+  - Všechny buildy a Docker image budou označeny jako release.
+
+Tím je vždy jasně poznat, jestli je build vývojový nebo produkční. Vše je plně automatizované a reflektováno v changelogu i v API `/version`.
+

@@ -5,7 +5,6 @@
 - [ ] setup linting
 - [ ] setup code formatting
 - [ ] security tests
-- [ ] bump proces rozdelit na 2 faze, mormalne aplikace musi byt ve vyvojovem stavu a do CHANGELOG to davat na zacatek a pod dev verzi, a pak musi bit nejkay prikaz na release, ktery udela bump verze tak jam mame ted a v tom changelogu to tu rozdelanou verzi zmeni na aktualni, pak zase spustim prikaz na dev a nal by mi nastavit v changelog dev versi, z verze buildu byvch mel poznad, jestli to bylo buildovane v dev rezimu a nebu release rezimu
 
 ## GELF (LATER after everything else works and all tests)
 

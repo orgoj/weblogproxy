@@ -94,6 +94,14 @@ depends = ["docker-test"]
 description = "Bump version (usage: mise run version-bump -- [major|minor|patch])"
 run = "./scripts/bump-version.sh -y ${@}"
 
+[tasks.version-bump-dev]
+description = "Set version to -dev and prepare [Unreleased] section in CHANGELOG.md"
+run = "./scripts/bump-version-dev.sh"
+
+[tasks.version-bump-release]
+description = "Bump version for release (major|minor|patch), move changelog section"
+run = "./scripts/bump-version-release.sh ${@}"
+
 [tasks.publish]
 description = "Publish version (usage: mise run publish -- [version])"
 run = "./scripts/publish.sh ${@}"
