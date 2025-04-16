@@ -15,123 +15,123 @@ GO111MODULE = "on"
 CGO_ENABLED = "0"
 
 [tasks.deps]
-description = "Download and tidy dependencies"
+description = "Download and tidy Go dependencies"
 run = "go mod tidy"
 sources = ["go.*"]
 outputs = { auto = true }
 
 [tasks.format]
-description = "Format Go code using gofmt on all .go files recursively"
+description = "Format all Go code recursively"
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 run = "gofmt -w ."
 
 [tasks.lint]
-description = "Run linters"
+description = "Run Go linters"
 run = "golangci-lint run"
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 depends = ["format"]
 
 [tasks.build]
-description = "Build the weblogproxy binary"
+description = "Build the weblogproxy binary executable"
 run = "go build -o weblogproxy ./cmd/weblogproxy"
 depends = ["deps", "format", "lint", "security-check"]
 sources = ["go.*", "cmd/**/*", "internal/**/*"]
 outputs = "weblogproxy"
 
 [tasks.config-check]
-description = "Validate configuration file"
+description = "Validate application configuration file"
 run = "go run ./cmd/weblogproxy --test --config config/test.yaml"
 sources = ["go.*", "cmd/**/*.go", "internal/**/*.go"]
 outputs = { auto = true }
 
 [tasks.run]
-description = "Run the weblogproxy service with example config"
+description = "Run weblogproxy with example configuration"
 run = "go run ./cmd/weblogproxy --config config/example.yaml"
 depends = ["config-check", "deps"]
 
 [tasks.run-test]
-description = "Run the weblogproxy service with test config"
+description = "Run weblogproxy with test configuration"
 run = "go run ./cmd/weblogproxy --config config/test.yaml"
 depends = ["config-check", "deps"]
 
 [tasks.test-unit]
-description = "Spustí pouze unit testy"
+description = "Run unit tests only"
 run = "go test -v ./..."
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 
 [tasks.test-e2e]
-description = "Spustí pouze E2E testy"
+description = "Run end-to-end tests only"
 run = "./test/run.sh"
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 depends = ["build"]
 
 [tasks.test]
-description = "Spustí všechny testy pro app"
+description = "Run all tests"
 wait_for = ["build", "config-check"]
 depends = ["test-unit", "test-e2e"]
 
 [tasks.docker-build]
-description = "Build Docker image"
+description = "Build the Docker image"
 run = "./scripts/docker-build.sh"
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 depends = ["ci"]
 
 [tasks.docker-run]
-description = "Run Docker container"
+description = "Run the Docker container"
 run = "docker run -p 8080:8080 -v $(pwd)/config/example.yaml:/app/config/config.yaml weblogproxy:latest"
 depends = ["docker-build"]
 
 [tasks.docker-test]
-description = "Test Docker image build and functionality"
+description = "Test Docker image and functionality"
 run = "./scripts/docker-test.sh"
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 depends = ["docker-build"]
 
 [tasks.docker-ssh-copy]
-description = "Deploy Docker image to remote server via SSH (usage: mise run docker-ssh-copy -- [server] [additional_ssh_options])"
+description = "Deploy Docker image to remote server via SSH"
 run = "./scripts/docker-ssh-copy.sh"
 depends = ["docker-test"]
 
 [tasks.version-bump-dev]
-description = "Set version to -dev and prepare [Unreleased] section in CHANGELOG.md"
+description = "Set version to -dev and prepare [Unreleased] changelog section"
 run = "./scripts/bump-version-dev.sh"
 
 [tasks.version-bump-release]
-description = "Bump version for release (major|minor|patch), move changelog section"
+description = "Bump version for release and update changelog"
 run = "./scripts/bump-version-release.sh"
 
 [tasks.publish]
-description = "Publish version (usage: mise run publish -- [version])"
+description = "Publish a new version"
 run = "./scripts/publish.sh"
 depends = ["test", "docker-test"]
 
 [tasks.install-sec-tools]
-description = "Install/update gosec and govulncheck"
+description = "Install or update security tools (gosec, govulncheck)"
 run = "go install github.com/securego/gosec/v2/cmd/gosec@latest && go install golang.org/x/vuln/cmd/govulncheck@latest"
 
 [tasks.gosec]
-description = "Run gosec security scanner"
+description = "Run gosec security scan"
 run = "gosec ./..."
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 
 [tasks.govulncheck]
-description = "Run govulncheck vulnerability scanner"
+description = "Run govulncheck vulnerability scan"
 run = "govulncheck ./..."
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 
 [tasks.security-check]
-description = "Run all security checks (gosec, govulncheck)"
+description = "Run all security checks"
 depends = ["gosec", "govulncheck"]
 
 [tasks.ci]
-description = "Run CI checks (lint, test, security)"
+description = "Run all CI checks (lint, test, security)"
 # Assuming CI should run security checks as well
 depends = ["lint", "test", "security-check"]

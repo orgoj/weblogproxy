@@ -1,5 +1,7 @@
 # WebLogProxy
 
+[➡️ See CHANGELOG.md for recent changes](./CHANGELOG.md)
+
 WebLogProxy is a flexible and secure web logging proxy that allows you to collect and forward client-side logs from web applications to various destinations.
 
 ## Features
@@ -228,61 +230,110 @@ The rule processor follows these key principles:
    - No target destinations are set
    - Accumulated values from continue rules are still available
 
-## Development
+## Architecture Overview
 
-### Linting
-
-This project uses [golangci-lint](https://golangci-lint.run/) for static code analysis. Run `mise lint` before every commit to ensure code quality. All code must pass linting with no errors.
-
-### Formatting
-
-Go code is automatically formatted using the standard `gofmt` tool. Use `mise run format` to format all Go files in the project. In VSCode, Go files are formatted on save (see .vscode/settings.json). No extra extension is needed, only the official Go extension.
-
-### Required Tools
-
-* **Go**: For building the application from source.
-* **Docker**: For containerized deployment.
-* **Hurl**: For end-to-end testing.
-* **Mise**: For deployment.
-
-### Building the Application
-
-If you prefer to build the application from source, follow these steps:
-
-1.  Build the application:
-    ```bash
-    go build -o weblogproxy ./cmd/weblogproxy
-    ```
-
-2.  Copy and configure:
-    ```bash
-    cp config/example.yaml config/config.yaml
-    # Edit config/config.yaml according to your needs
-    ```
-
-3.  Run:
-    ```bash
-    ./weblogproxy --config config/config.yaml
-    ```
-
-### Development Deployment via SSH
-
-For development and testing purposes, you can deploy the Docker image directly to a remote server via SSH without publishing to a registry:
-
-```bash
-# Deploy to remote server (runs docker-test first)
-./scripts/docker-ssh-copy.sh user@remote-server [additional_ssh_options]
-
-# Alternative using mise
-mise run docker-ssh-copy -- user@remote-server [additional_ssh_options]
+```mermaid
+graph TD
+  Client[Web Client / Browser]
+  Client -->|/logger.js| WebLogProxy[WebLogProxy Server]
+  Client -->|/log| WebLogProxy
+  WebLogProxy -->|Log Forwarding| Destinations[Log Destinations]
+  Destinations -->|File, Syslog, GELF| Storage[Storage/External Systems]
 ```
 
-This will:
-1. Tag the existing test image with the current version and timestamp (e.g., `0.9.0-20230615-120530`)
-2. Transfer the image to the remote server via SSH
-3. Clean up the local tagged image
+- **Web Client**: Loads logger.js and sends logs via HTTP.
+- **WebLogProxy Server**: Handles log ingestion, rule processing, enrichment, security, and forwards logs.
+- **Log Destinations**: Configurable outputs (file, syslog, GELF, etc.).
 
-The timestamp in the image tag allows you to easily identify when each image was built when running `docker ps` on the remote server.
+## Security Features
+
+WebLogProxy implements several security mechanisms:
+
+- **Token-based Authentication**: Each client receives a signed token via `/logger.js`, which must be included in log requests. Tokens have configurable expiration and are validated on the server.
+- **Input Validation**: All incoming data is validated and sanitized to prevent injection and malformed data.
+- **Rate Limiting**: Configurable rate limits per client/IP to prevent abuse and DoS attacks.
+- **CORS Configuration**: Only allowed origins can access the logging endpoints, configurable via YAML.
+- **Error Handling & Logging**: All errors are logged with context for audit and debugging.
+- **Separation of Destinations**: Logs can be routed to different destinations, isolating sensitive data if needed.
+
+## Development
+
+### Mise Tasks
+
+This project uses [Mise](https://mise.jdx.dev/) for task automation. Below is a list of all available tasks, their descriptions, and a dependency graph. Use these tasks to build, test, lint, and manage the project efficiently.
+
+#### Task List (Alphabetical)
+
+| Task Name             | Description                                      |
+|----------------------|--------------------------------------------------|
+| build                | Build the weblogproxy binary executable          |
+| ci                   | Run all CI checks (lint, test, security)         |
+| config-check         | Validate application configuration file          |
+| deps                 | Download and tidy Go dependencies                |
+| docker-build         | Build the Docker image                           |
+| docker-run           | Run the Docker container                         |
+| docker-ssh-copy      | Deploy Docker image to remote server via SSH      |
+| docker-test          | Test Docker image and functionality              |
+| format               | Format all Go code recursively                   |
+| gosec                | Run gosec security scan                          |
+| govulncheck          | Run govulncheck vulnerability scan               |
+| install-sec-tools    | Install or update security tools (gosec, govulncheck) |
+| lint                 | Run Go linters                                   |
+| publish              | Publish a new version                            |
+| run                  | Run weblogproxy with example configuration       |
+| run-test             | Run weblogproxy with test configuration          |
+| security-check       | Run all security checks                          |
+| test                 | Run all tests                                    |
+| test-e2e             | Run end-to-end tests only                        |
+| test-unit            | Run unit tests only                              |
+| version-bump-dev     | Set version to -dev and prepare [Unreleased] changelog section |
+| version-bump-release | Bump version for release and update changelog    |
+
+#### Task Dependency Graph
+
+```mermaid
+graph TD
+  build --> deps
+  lint --> format
+  build --> lint
+  build --> security-check
+  security-check --> gosec
+  security-check --> govulncheck
+  test-e2e --> build
+  test --> build
+  run --> config-check
+  run-test --> config-check
+  test --> config-check
+  test --> test-unit
+  test --> test-e2e
+  ci --> lint
+  ci --> test
+  ci --> security-check
+  docker-test --> docker-build
+  docker-ssh-copy --> docker-test
+  docker-run --> docker-build
+  docker-build --> ci
+  publish --> test
+  publish --> docker-test
+```
+
+
+## Versioning and Release Process
+
+WebLogProxy uses a two-phase versioning process:
+
+- **Development version:**
+  - Run `mise run version-bump-dev`.
+  - Sets the version with the `-dev` suffix (e.g., `1.2.3-dev`) in `internal/version/version.go`.
+  - Prepares the `[Unreleased]` section in `CHANGELOG.md`.
+  - All builds and Docker images will be marked as dev.
+
+- **Release version:**
+  - Run `mise run version-bump-release -- -y patch` (or `minor`/`major`).
+  - Removes the `-dev` suffix from the version, moves the contents of `[Unreleased]` to a new section with the version number and date in the changelog.
+  - All builds and Docker images will be marked as release.
+
+This ensures it is always clear whether a build is a development or production build. Everything is fully automated and reflected in the changelog and the `/version` API.
 
 ## Contributing
 
@@ -298,33 +349,3 @@ WebLogProxy was created because I needed to log events from Google Tag
 Manager. I developed the entire project using the Cursor IDE, without 
 any prior experience in the Go programming language. I didn't write a 
 single line of code and was just learning to use the editor.
-
-### Validating Configuration
-
-To validate your configuration file without starting the server (like nginx -t), run:
-
-```bash
-./weblogproxy -t --config config/example.yaml
-# or
-./weblogproxy --test --config config/example.yaml
-```
-
-If the configuration is valid, the program will print a confirmation and exit with code 0. If invalid, it will print an error and exit with code 1.
-
-## Versioning and Release Process
-
-WebLogProxy používá dvoufázový proces verzování:
-
-- **Vývojová verze:**
-  - Spusť `mise run version-bump-dev`.
-  - Nastaví verzi s příponou `-dev` (např. `1.2.3-dev`) v `internal/version/version.go`.
-  - Připraví sekci `[Unreleased]` v `CHANGELOG.md`.
-  - Všechny buildy a Docker image budou označeny jako dev.
-
-- **Release verze:**
-  - Spusť `mise run version-bump-release -- -y patch` (nebo `minor`/`major`).
-  - Odstraní `-dev` z verze, posune obsah `[Unreleased]` do nové sekce s číslem verze a datem v changelogu.
-  - Všechny buildy a Docker image budou označeny jako release.
-
-Tím je vždy jasně poznat, jestli je build vývojový nebo produkční. Vše je plně automatizované a reflektováno v changelogu i v API `/version`.
-
