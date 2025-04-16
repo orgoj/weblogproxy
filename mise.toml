@@ -106,7 +106,3 @@ run = "rm -rf bin/ dist/"
 [tasks.dev]
 description = "Run development server with hot reload"
 run = "air -c .air.toml"
-
-[tasks.docs]
-description = "Generate API documentation"
-run = "swag init -g cmd/weblogproxy/main.go -o docs/swagger"
