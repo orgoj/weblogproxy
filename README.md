@@ -234,6 +234,10 @@ The rule processor follows these key principles:
 
 This project uses [golangci-lint](https://golangci-lint.run/) for static code analysis. Run `mise lint` before every commit to ensure code quality. All code must pass linting with no errors.
 
+### Formatting
+
+Go code is automatically formatted using the standard `gofmt` tool. Use `mise run format` to format all Go files in the project. In VSCode, Go files are formatted on save (see .vscode/settings.json). No extra extension is needed, only the official Go extension.
+
 ### Required Tools
 
 * **Go**: For building the application from source.

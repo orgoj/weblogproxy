@@ -9,5 +9,9 @@
         "gopls": "/home/michael/.local/share/mise/shims/gopls"
     },
     "go.lintTool": "golangci-lint",
-    "go.lintOnSave": "workspace"
+    "go.lintOnSave": "workspace",
+    "[go]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "golang.go"
+    }
 }

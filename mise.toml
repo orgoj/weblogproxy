@@ -114,3 +114,7 @@ run = "rm -rf bin/ dist/"
 [tasks.dev]
 description = "Run development server with hot reload"
 run = "air -c .air.toml"
+
+[tasks.format]
+description = "Format Go code using gofmt on all .go files recursively"
+run = "gofmt -w ."
