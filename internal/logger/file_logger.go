@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -103,8 +104,9 @@ func NewFileLogger(cfg config.LogDestination) (*FileLogger, error) {
 		}
 	} else {
 		// Otherwise, use a standard file
-		file, err := os.OpenFile(cfg.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(cfg.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640) // #nosec G302 -- Permissions set to 0640 to allow reading by log collectors in the same group.
 		if err != nil {
+			log.Printf("ERROR: Failed to open log file %s: %v", cfg.Path, err)
 			return nil, fmt.Errorf("failed to open log file %s: %w", cfg.Path, err)
 		}
 		writer = file

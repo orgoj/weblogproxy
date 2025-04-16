@@ -116,11 +116,11 @@ type LogRule struct {
 	LogDestinations []string              `yaml:"log_destinations,omitempty"` // Optional list of destination names
 }
 
-// LoadConfig loads and validates the configuration from a file
+// LoadConfig reads the configuration file from the given path.
 func LoadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- Config path is provided by user via command-line flag, considered trusted input.
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file '%s': %w", path, err)
+		return nil, fmt.Errorf("failed to read config file %s: %w", path, err)
 	}
 
 	var cfg Config

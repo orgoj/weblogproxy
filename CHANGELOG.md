@@ -5,6 +5,7 @@
 ### Added
 - Linting setup: project now uses golangci-lint for static code analysis. All lint errors fixed.
 - Automatic Go code formatting: added mise task 'format' using gofmt and VSCode integration for format on save.
+- Added automated security checks (`gosec`, `govulncheck`) integrated into the build process via `mise` tasks.
 
 ### Changed
 - 

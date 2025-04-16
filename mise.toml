@@ -3,7 +3,7 @@ jobs=1
 
 [tools]
 github-cli = "latest"
-go = "1.22.0"
+go = "latest"
 golangci-lint = "latest"
 hurl = "latest"
 jq = "latest"
@@ -32,7 +32,7 @@ depends = ["format"]
 [tasks.build]
 description = "Build the weblogproxy binary"
 run = "go build -o weblogproxy ./cmd/weblogproxy"
-depends = ["deps", "format", "lint"]
+depends = ["deps", "format", "lint", "security-check"]
 sources = ["go.*", "cmd/**/*", "internal/**/*"]
 outputs = "weblogproxy"
 
@@ -66,16 +66,12 @@ description = "Spustí všechny testy pro app"
 wait_for = ["build", "config-check"]
 depends = ["test-unit", "test-e2e"]
 
-[tasks.test-all]
-description = "Spustí všechny testy pro app i docker"
-depends = ["test", "docker-test"]
-
 [tasks.docker-build]
 description = "Build Docker image"
 run = "./scripts/docker-build.sh"
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
-depends = ["test"]
+depends = ["ci"]
 
 [tasks.docker-run]
 description = "Run Docker container"
@@ -106,3 +102,28 @@ run = "./scripts/bump-version-release.sh ${@}"
 description = "Publish version (usage: mise run publish -- [version])"
 run = "./scripts/publish.sh ${@}"
 depends = ["test", "docker-test"]
+
+[tasks.install-sec-tools]
+description = "Install/update gosec and govulncheck"
+run = "go install github.com/securego/gosec/v2/cmd/gosec@latest && go install golang.org/x/vuln/cmd/govulncheck@latest"
+
+[tasks.gosec]
+description = "Run gosec security scanner"
+run = "gosec ./..."
+sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
+outputs = { auto = true }
+
+[tasks.govulncheck]
+description = "Run govulncheck vulnerability scanner"
+run = "govulncheck ./..."
+sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
+outputs = { auto = true }
+
+[tasks.security-check]
+description = "Run all security checks (gosec, govulncheck)"
+depends = ["gosec", "govulncheck"]
+
+[tasks.ci]
+description = "Run CI checks (lint, test, security)"
+# Assuming CI should run security checks as well
+depends = ["lint", "test", "security-check"]

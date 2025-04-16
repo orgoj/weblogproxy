@@ -2,8 +2,7 @@
 
 ## URGENT
 
-- [ ] setup code formatting
-- [ ] security tests
+- [x] security tests
 
 ## GELF (LATER after everything else works and all tests)
 
