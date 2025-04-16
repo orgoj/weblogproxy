@@ -2,9 +2,6 @@
 
 ## GELF (LATER after everything else works and all tests)
 
-- [x] Implement GELF Logger
-- [ ] Add support for TCP GELF
-- [ ] Add support for ZLIB GELF compression
 - [ ] Implement log truncation based on MaxBodySize for GELF and other formats
 
 ## E2E Tests

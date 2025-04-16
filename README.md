@@ -230,6 +230,34 @@ The rule processor follows these key principles:
    - No target destinations are set
    - Accumulated values from continue rules are still available
 
+## Log Destinations
+
+WebLogProxy supports multiple log destination types to give you flexibility in how and where you store your logs:
+
+### File Logger
+Writes logs to a local file with configurable path and rotation settings.
+
+### Syslog
+Forwards logs to a syslog server for centralized logging.
+
+### GELF Logger
+Sends logs to Graylog servers using the GELF (Graylog Extended Log Format) protocol. Supports both UDP and TCP transport protocols.
+
+#### GELF Configuration Example:
+```yaml
+destinations:
+  - name: graylog
+    type: gelf
+    enabled: true
+    options:
+      host: "graylog.example.com:12201"  # Graylog server address with port
+      protocol: "udp"                   # Protocol: "udp" or "tcp"
+      compression: false                # Optional: Enable ZLIB compression
+      additional_fields:                # Optional: Add custom fields to all GELF messages
+        environment: "production"
+        application: "weblogproxy"
+```
+
 ## Architecture Overview
 
 ```mermaid
