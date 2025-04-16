@@ -2,17 +2,17 @@
 This is the Go template for the dynamic logger.js script.
 It receives LoggerJsData as input.
 Go template comments like this one are not rendered in the output.
-*/}}
-(function() {
+*/}}(function() {
     'use strict';
-    {{if eq .LogEnabled "true"}}
+    {{if .LogEnabled}}
     const config = {
         logEnabled: true,
         siteId: "{{.SiteID}}",
         gtmId: "{{.GtmID}}",
         token: "{{.Token}}",
-        logUrl: "{{.LogURL}}",
-        scriptsToInject: [
+        logUrl: "{{.LogURL}}"
+        {{if .ScriptsToInject}}
+        ,scriptsToInject: [
             {{range .ScriptsToInject}}
             {
                 url: "{{.URL}}",
@@ -21,6 +21,7 @@ Go template comments like this one are not rendered in the output.
             },
             {{end}}
         ]
+        {{end}}
     };
 
     function sendLog(data) {
@@ -40,6 +41,7 @@ Go template comments like this one are not rendered in the output.
         navigator.sendBeacon(config.logUrl, JSON.stringify(payload));
     }
 
+    {{if .ScriptsToInject}}
     function injectScript(script) {
         const scriptElement = document.createElement('script');
         scriptElement.src = script.url;
@@ -52,15 +54,16 @@ Go template comments like this one are not rendered in the output.
         (document.head || document.body || document.documentElement).appendChild(scriptElement);
     }
 
-    window.weblogproxy = window.weblogproxy || {};
-    window.weblogproxy.log = sendLog;
-    window.weblogproxy.config = config;
-
     if (config.scriptsToInject && config.scriptsToInject.length > 0) {
         config.scriptsToInject.forEach(injectScript);
     }
+    {{end}}
+
+    window.{{.GlobalObjectName}} = window.{{.GlobalObjectName}} || {};
+    window.{{.GlobalObjectName}}.log = sendLog;
+    window.{{.GlobalObjectName}}.config = config;
     {{else}}
-    window.weblogproxy = window.weblogproxy || {};
-    window.weblogproxy.log = function() {};
+    window.{{.GlobalObjectName}} = window.{{.GlobalObjectName}} || {};
+    window.{{.GlobalObjectName}}.log = function() {};
     {{end}}
 })();

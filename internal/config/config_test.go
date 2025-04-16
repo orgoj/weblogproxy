@@ -778,6 +778,8 @@ security:
 			cfg.Server.Host = "0.0.0.0"
 			cfg.Server.Port = 8080
 			cfg.Server.Mode = "standalone"
+			cfg.Server.Protocol = "http"
+			cfg.Server.JavaScript.GlobalObjectName = "wlp"
 
 			err := yaml.Unmarshal([]byte(tt.config), &cfg)
 			require.NoError(t, err, "YAML unmarshalling should not fail")

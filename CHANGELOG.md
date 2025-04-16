@@ -6,6 +6,11 @@ All significant changes to the weblogproxy project will be documented in this fi
 ## [0.9.2] - 2025-04-16
 
 - Fix blank logger.js template
+- Fix version in docker log
+- Updated docker-build.sh and docker-test.sh scripts to accept full image name including tag
+- Modified logger.js template to avoid generating scriptsToInject when none are defined
+- Added server.protocol configuration option to control URL schema (http/https)
+- Changed JavaScript global object name from window.weblogproxy to window.wlp and made it configurable
 
 
 ## [0.9.1] - 2025-04-10

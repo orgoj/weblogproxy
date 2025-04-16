@@ -28,24 +28,22 @@ HTTP 200
 
 # Test 1.2: Get logger.js with only site_id (GTM ID optional)
 # Should only match Rule 0 (continue: true), no final rule matches.
-# Expect LogEnabled=false, but base script injected.
-# Expect Token="" and LogUrl=""
+# Expect empty log function, base script is NOT injected.
 GET {{logger_js_url}}?site_id={{valid_site_id}}
 [Options]
     # insecure: true # Assume set globally
 HTTP 200
 [Asserts]
     header "Content-Type" contains "application/javascript"
-    body contains "logEnabled: false,"
-    body contains "token: \"\"" # Empty token
-    body contains "logUrl: \"\"" # Empty URL
-    body contains "/scripts/base-tracking.js" # Base script from Rule 0
+    body contains "window.wlp = window.wlp || {}"
+    body contains "window.wlp.log = function() {}"
+    body not contains "logEnabled: true" # Not enabled
+    body not contains "/scripts/base-tracking.js" # No scripts should be injected
     body not contains "https://cdn.example.com/tracker.js" # Script from Rule 1
     body not contains "/local/scripts/init.js" # Script from Rule 1
 
 # Test 1.3: Get logger.js for a disabled site (Rule 3 matches -> ShouldLogToServer=false, Rule 0 matches -> ShouldInjectScripts=true)
-# Expect LogEnabled=false (server-side logging disabled), but base script injected
-# Expect Token="" and LogUrl=""
+# Expect empty log function, base script is NOT injected
 GET {{logger_js_url}}?site_id={{disabled_site_id}}
 [Options]
     # insecure: true # Assume set globally
@@ -54,9 +52,9 @@ GET {{logger_js_url}}?site_id={{disabled_site_id}}
 HTTP 200
 [Asserts]
     header "Content-Type" contains "application/javascript"
-    body contains "logEnabled: false,"
-    body contains "token: \"\"" # Empty token
-    body contains "logUrl: \"\"" # Empty URL
-    body contains "/scripts/base-tracking.js" # Check for base script (due to ShouldInjectScripts=true)
+    body contains "window.wlp = window.wlp || {}"
+    body contains "window.wlp.log = function() {}"
+    body not contains "logEnabled: true" # Not enabled
+    body not contains "/scripts/base-tracking.js" # No scripts should be injected
     body not contains "https://cdn.example.com/tracker.js"
     body not contains "/local/scripts/init.js" 

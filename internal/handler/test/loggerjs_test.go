@@ -24,10 +24,13 @@ func TestLoggerJSHandler_MissingSiteID(t *testing.T) {
 	c.Request = req
 
 	// Setup minimal dependencies
-	ruleProcessor, _ := rules.NewRuleProcessor(&config.Config{})
+	testConfig := &config.Config{}
+	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
+
+	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
-		Config:             &config.Config{},
+		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 	}
 
@@ -40,9 +43,9 @@ func TestLoggerJSHandler_MissingSiteID(t *testing.T) {
 	// Check the response
 	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status for missing site_id")
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
-	assert.Contains(t, w.Body.String(), "logEnabled: false", "Should return JavaScript with logEnabled: false")
-	assert.Contains(t, w.Body.String(), "token: \"\"", "Should return JavaScript with empty token")
-	assert.Contains(t, w.Body.String(), "logUrl: \"\"", "Should return JavaScript with empty logUrl")
+	assert.Contains(t, w.Body.String(), "window.wlp = window.wlp || {}", "Should return basic wlp object")
+	assert.Contains(t, w.Body.String(), "window.wlp.log = function() {}", "Should return empty log function")
+	assert.NotContains(t, w.Body.String(), "logEnabled: true", "Should not enable logging")
 }
 
 func TestLoggerJSHandler_InvalidSiteID(t *testing.T) {
@@ -56,10 +59,13 @@ func TestLoggerJSHandler_InvalidSiteID(t *testing.T) {
 	c.Request = req
 
 	// Setup minimal dependencies
-	ruleProcessor, _ := rules.NewRuleProcessor(&config.Config{})
+	testConfig := &config.Config{}
+	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
+
+	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
-		Config:             &config.Config{},
+		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 	}
 
@@ -72,9 +78,9 @@ func TestLoggerJSHandler_InvalidSiteID(t *testing.T) {
 	// Check the response
 	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status for invalid site_id")
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
-	assert.Contains(t, w.Body.String(), "logEnabled: false", "Should return JavaScript with logEnabled: false")
-	assert.Contains(t, w.Body.String(), "token: \"\"", "Should return JavaScript with empty token")
-	assert.Contains(t, w.Body.String(), "logUrl: \"\"", "Should return JavaScript with empty logUrl")
+	assert.Contains(t, w.Body.String(), "window.wlp = window.wlp || {}", "Should return basic wlp object")
+	assert.Contains(t, w.Body.String(), "window.wlp.log = function() {}", "Should return empty log function")
+	assert.NotContains(t, w.Body.String(), "logEnabled: true", "Should not enable logging")
 }
 
 func TestLoggerJSHandler_InvalidGtmID(t *testing.T) {
@@ -88,10 +94,13 @@ func TestLoggerJSHandler_InvalidGtmID(t *testing.T) {
 	c.Request = req
 
 	// Setup minimal dependencies
-	ruleProcessor, _ := rules.NewRuleProcessor(&config.Config{})
+	testConfig := &config.Config{}
+	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
+
+	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
-		Config:             &config.Config{},
+		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 	}
 
@@ -104,7 +113,7 @@ func TestLoggerJSHandler_InvalidGtmID(t *testing.T) {
 	// Check the response
 	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status for invalid gtm_id")
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
-	assert.Contains(t, w.Body.String(), "logEnabled: false", "Should return JavaScript with logEnabled: false")
-	assert.Contains(t, w.Body.String(), "token: \"\"", "Should return JavaScript with empty token")
-	assert.Contains(t, w.Body.String(), "logUrl: \"\"", "Should return JavaScript with empty logUrl")
+	assert.Contains(t, w.Body.String(), "window.wlp = window.wlp || {}", "Should return basic wlp object")
+	assert.Contains(t, w.Body.String(), "window.wlp.log = function() {}", "Should return empty log function")
+	assert.NotContains(t, w.Body.String(), "logEnabled: true", "Should not enable logging")
 }

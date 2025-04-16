@@ -376,6 +376,7 @@ func TestRuleProcessor_Process(t *testing.T) {
 					Host           string   `yaml:"host"`
 					Port           int      `yaml:"port"`
 					Mode           string   `yaml:"mode"`
+					Protocol       string   `yaml:"protocol"`
 					Domain         string   `yaml:"domain"`
 					PathPrefix     string   `yaml:"path_prefix"`
 					TrustedProxies []string `yaml:"trusted_proxies"`
@@ -389,9 +390,13 @@ func TestRuleProcessor_Process(t *testing.T) {
 						MaxBodySize int `yaml:"max_body_size"`
 						RateLimit   int `yaml:"rate_limit"`
 					} `yaml:"request_limits"`
+					JavaScript struct {
+						GlobalObjectName string `yaml:"global_object_name"`
+					} `yaml:"javascript"`
 				}{
 					TrustedProxies: tt.trustedProxies,
 					Mode:           "embedded",
+					Protocol:       "http",
 				},
 			})
 			if tt.expectError {

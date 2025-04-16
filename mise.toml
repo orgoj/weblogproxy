@@ -68,7 +68,7 @@ run = "golangci-lint run"
 
 [tasks.docker-build]
 description = "Build Docker image"
-run = "docker build -t weblogproxy:latest ."
+run = "./scripts/docker-build.sh"
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
 

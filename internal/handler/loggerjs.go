@@ -31,12 +31,13 @@ var loggerJSTemplateContent string
 
 // LoggerJsData holds all dynamic values needed for the logger.js template.
 type LoggerJsData struct {
-	LogEnabled      bool
-	SiteID          string
-	GtmID           string
-	Token           string
-	LogURL          string // Full URL for the /log endpoint
-	ScriptsToInject []config.ScriptInjectionSpec
+	LogEnabled       bool
+	SiteID           string
+	GtmID            string
+	Token            string
+	LogURL           string // Full URL for the /log endpoint
+	ScriptsToInject  []config.ScriptInjectionSpec
+	GlobalObjectName string // Name of the global JavaScript object
 }
 
 // --- End Template Data Structure ---
@@ -95,14 +96,18 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 		if siteID == "" {
 			slog.Warn("Missing required query parameter: site_id", "remote_ip", ctx.ClientIP(), "path", ctx.Request.URL.Path)
 			// Return empty JavaScript instead of error
-			executeTemplateAndRespond(ctx, LoggerJsData{})
+			executeTemplateAndRespond(ctx, LoggerJsData{
+				GlobalObjectName: deps.Config.Server.JavaScript.GlobalObjectName,
+			})
 			return
 		}
 
 		if err := validation.IsValidID(siteID, validation.DefaultMaxInputLength); err != nil {
 			slog.Warn("Invalid site_id", "site_id", siteID, "error", err, "remote_ip", ctx.ClientIP())
 			// Return empty JavaScript instead of error
-			executeTemplateAndRespond(ctx, LoggerJsData{})
+			executeTemplateAndRespond(ctx, LoggerJsData{
+				GlobalObjectName: deps.Config.Server.JavaScript.GlobalObjectName,
+			})
 			return
 		}
 
@@ -110,7 +115,9 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 			if err := validation.IsValidID(gtmID, validation.DefaultMaxInputLength); err != nil {
 				slog.Warn("Invalid gtm_id", "gtm_id", gtmID, "error", err, "remote_ip", ctx.ClientIP())
 				// Return empty JavaScript instead of error
-				executeTemplateAndRespond(ctx, LoggerJsData{})
+				executeTemplateAndRespond(ctx, LoggerJsData{
+					GlobalObjectName: deps.Config.Server.JavaScript.GlobalObjectName,
+				})
 				return
 			}
 		}
@@ -120,12 +127,13 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 
 		// Prepare data for the template in the same way regardless of whether logging is enabled
 		data := LoggerJsData{
-			SiteID:          siteID,
-			GtmID:           gtmID,
-			LogEnabled:      ruleResult.ShouldLogToServer,
-			ScriptsToInject: ruleResult.AccumulatedScripts,
-			Token:           "",
-			LogURL:          "",
+			SiteID:           siteID,
+			GtmID:            gtmID,
+			LogEnabled:       ruleResult.ShouldLogToServer,
+			ScriptsToInject:  ruleResult.AccumulatedScripts,
+			Token:            "",
+			LogURL:           "",
+			GlobalObjectName: deps.Config.Server.JavaScript.GlobalObjectName,
 		}
 
 		// Generate token and logURL only when logging is enabled
@@ -138,7 +146,7 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 			} else {
 				data.Token = token
 			}
-			data.LogURL = buildLogURL(ctx, deps.Config.Server.PathPrefix, deps.Config.Server.Mode, deps.Config.Server.Domain)
+			data.LogURL = buildLogURL(ctx, deps.Config.Server.PathPrefix, deps.Config.Server.Mode, deps.Config.Server.Domain, deps.Config.Server.Protocol)
 		}
 
 		// Set cache headers if configured
@@ -165,7 +173,7 @@ func executeTemplateAndRespond(ctx *gin.Context, data LoggerJsData) {
 
 // buildLogURL constructs the URL for the /log endpoint
 // Returns relative URL in embedded mode and absolute URL in standalone mode
-func buildLogURL(c *gin.Context, pathPrefix string, serverMode string, serverDomain string) string {
+func buildLogURL(c *gin.Context, pathPrefix string, serverMode string, serverDomain string, protocol string) string {
 	logPath := "/log"
 	if pathPrefix != "" {
 		cleanPrefix := "/" + strings.Trim(pathPrefix, "/")
@@ -180,13 +188,8 @@ func buildLogURL(c *gin.Context, pathPrefix string, serverMode string, serverDom
 			return serverDomain + logPath
 		}
 
-		// Otherwise estimate schema from request
-		scheme := "http"
-		if c.Request.TLS != nil {
-			scheme = "https"
-		}
-
-		return scheme + "://" + serverDomain + logPath
+		// Use configured protocol
+		return protocol + "://" + serverDomain + logPath
 	}
 
 	// Embedded mode (default) - return relative URL

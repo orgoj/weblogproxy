@@ -46,8 +46,9 @@ type Config struct {
 	Server struct {
 		Host           string   `yaml:"host"`
 		Port           int      `yaml:"port"`
-		Mode           string   `yaml:"mode"`   // standalone or embedded
-		Domain         string   `yaml:"domain"` // Full domain name for standalone mode
+		Mode           string   `yaml:"mode"`     // standalone or embedded
+		Protocol       string   `yaml:"protocol"` // http or https, used for generating URLs
+		Domain         string   `yaml:"domain"`   // Full domain name for standalone mode
 		PathPrefix     string   `yaml:"path_prefix"`
 		TrustedProxies []string `yaml:"trusted_proxies"`
 		CORS           struct {
@@ -60,6 +61,9 @@ type Config struct {
 			MaxBodySize int `yaml:"max_body_size"` // bytes
 			RateLimit   int `yaml:"rate_limit"`    // requests per minute (TODO: Implement)
 		} `yaml:"request_limits"`
+		JavaScript struct {
+			GlobalObjectName string `yaml:"global_object_name"` // Name of the global JS object (default: wlp)
+		} `yaml:"javascript"`
 	} `yaml:"server"`
 
 	Security struct {
@@ -135,9 +139,11 @@ func LoadConfig(path string) (*Config, error) {
 
 	var cfg Config
 	// Default values can be set here before unmarshalling if needed
-	cfg.Server.Host = "0.0.0.0"    // Default host
-	cfg.Server.Port = 8080         // Default port
-	cfg.Server.Mode = "standalone" // Default mode
+	cfg.Server.Host = "0.0.0.0"                    // Default host
+	cfg.Server.Port = 8080                         // Default port
+	cfg.Server.Mode = "standalone"                 // Default mode
+	cfg.Server.Protocol = "http"                   // Default protocol
+	cfg.Server.JavaScript.GlobalObjectName = "wlp" // Default JS global object name
 
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("error parsing config file '%s': %w", path, err)
@@ -169,6 +175,17 @@ func validateConfig(cfg *Config) error {
 	if cfg.Server.Mode != "standalone" && cfg.Server.Mode != "embedded" {
 		return fmt.Errorf("invalid server.mode: '%s', must be 'standalone' or 'embedded'", cfg.Server.Mode)
 	}
+	if cfg.Server.Protocol != "http" && cfg.Server.Protocol != "https" {
+		return fmt.Errorf("invalid server.protocol: '%s', must be 'http' or 'https'", cfg.Server.Protocol)
+	}
+	// Validate JavaScript global object name
+	if cfg.Server.JavaScript.GlobalObjectName == "" {
+		return errors.New("server.javascript.global_object_name cannot be empty")
+	}
+	if !isValidJSIdentifier(cfg.Server.JavaScript.GlobalObjectName) {
+		return fmt.Errorf("server.javascript.global_object_name '%s' is not a valid JavaScript identifier", cfg.Server.JavaScript.GlobalObjectName)
+	}
+
 	if cfg.Server.Mode == "embedded" && cfg.Server.PathPrefix == "" {
 		return errors.New("server.path_prefix is required when server.mode is 'embedded'")
 	}
@@ -463,4 +480,45 @@ func ParseSize(sizeStr string) (int64, error) {
 	}
 
 	return resultBig.Int64(), nil
+}
+
+// isValidJSIdentifier checks if a string is a valid JavaScript identifier
+func isValidJSIdentifier(s string) bool {
+	if s == "" {
+		return false
+	}
+	// Check first character (must be letter, underscore, or dollar sign)
+	firstChar := s[0]
+	if !((firstChar >= 'a' && firstChar <= 'z') ||
+		(firstChar >= 'A' && firstChar <= 'Z') ||
+		firstChar == '_' || firstChar == '$') {
+		return false
+	}
+
+	// Check rest of the characters (can also include digits)
+	for i := 1; i < len(s); i++ {
+		c := s[i]
+		if !((c >= 'a' && c <= 'z') ||
+			(c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9') ||
+			c == '_' || c == '$') {
+			return false
+		}
+	}
+
+	// Check if it's not a reserved word
+	reservedWords := map[string]bool{
+		"break": true, "case": true, "catch": true, "class": true, "const": true,
+		"continue": true, "debugger": true, "default": true, "delete": true,
+		"do": true, "else": true, "export": true, "extends": true, "false": true,
+		"finally": true, "for": true, "function": true, "if": true, "import": true,
+		"in": true, "instanceof": true, "new": true, "null": true, "return": true,
+		"super": true, "switch": true, "this": true, "throw": true, "true": true,
+		"try": true, "typeof": true, "var": true, "void": true, "while": true,
+		"with": true, "yield": true, "let": true, "static": true, "enum": true,
+		"await": true, "implements": true, "package": true, "protected": true,
+		"interface": true, "private": true, "public": true,
+	}
+
+	return !reservedWords[s]
 }

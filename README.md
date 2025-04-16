@@ -1,125 +1,91 @@
 # WebLogProxy
 
-![Version](https://img.shields.io/github/v/tag/orgoj/weblogproxy?label=version&sort=semver)
-![CI Status](https://github.com/orgoj/weblogproxy/actions/workflows/ci.yml/badge.svg)
-![License](https://img.shields.io/github/license/orgoj/weblogproxy)
-![Go Version](https://img.shields.io/github/go-mod/go-version/orgoj/weblogproxy)
-
-**Current version: 0.9.2** - See [CHANGELOG.md](CHANGELOG.md) for details
-
-## Overview
-
-WebLogProxy is a flexible and performant web log processor designed to receive logs from client-side JavaScript, enrich them with server-side information, apply processing rules, and forward them to various destinations like files (with rotation) or GELF endpoints.
+WebLogProxy is a flexible and secure web logging proxy that allows you to collect and forward client-side logs from web applications to various destinations.
 
 ## Features
 
-*   **Dynamic Client-Side Logger:** `/logger.js` endpoint generates a JavaScript logger tailored to the requesting client based on rules.
-*   **Rule-Based Processing:** Define rules in YAML to control logging behavior, data enrichment, and script injection based on Site ID, GTM ID, User Agent, and IP address.
-*   **Data Enrichment:** Automatically add server timestamp, client IP, User Agent, Referer, and selected headers/query params to log records.
-*   **Multiple Destinations:** Send logs to files (with rotation and compression options) or GELF endpoints.
-*   **Security:** Uses time-limited tokens to prevent unauthorized log submissions.
-*   **Performance:** Designed with performance in mind, using Go templates and efficient processing.
-*   **Flexibility:** Run in `standalone` mode or `embedded` within an existing site structure.
-*   **CORS Support:** Configurable Cross-Origin Resource Sharing headers.
-*   **Graceful Shutdown:** Handles termination signals properly.
-*   **Containerized:** Includes a multi-stage Dockerfile based on Alpine Linux.
+* **Multiple Logging Destinations**: Configure multiple destinations for logs, including files, syslog servers, and GELF endpoints.
+* **Rule-based Logging**: Define rules based on site ID, GTM ID, user agent, and client IP to control logging behavior.
+* **Script Injection**: Inject scripts based on rules, even when logging is disabled.
+* **Data Enrichment**: Add or modify log data with values from various sources (static, HTTP headers, query parameters, post data).
+* **Security**: Secure token generation and validation with configurable expiration.
+* **Rate Limiting**: Protect against abuse with configurable rate limits.
+* **Flexible Deployment**: Run as a standalone server or embedded behind a reverse proxy.
+* **CORS Support**: Configure CORS for cross-origin requests.
+* **Minimal Footprint**: Built in Go for speed and efficiency, with a small memory footprint.
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
-
-*   Docker (for containerized deployment)
-
-### Quick Start with Docker
-
-#### 1. Create a config and log directory
-
-Create a `config` directory and copy the `config/docker-config.yaml` file to it. Edit it to your needs.
-
-Create a `log` directory to store the log files.
-
-
-#### 2a.  Using Docker CLI
-
-Run the following command to start the container:
+### Using Docker
 
 ```bash
-docker run -p 8080:8080 -v $(pwd)/config:/app/config -v $(pwd)/log:/app/log weblogproxy:latest
+# Clone the repository
+git clone https://github.com/orgoj/weblogproxy.git
+cd weblogproxy
+
+# Copy and edit the configuration file
+cp config/example.yaml config/config.yaml
+# Edit config/config.yaml to your needs
+
+# Build and run with Docker
+docker-compose up -d
 ```
 
-#### 2b.  Using Docker Compose
+### Building from Source
 
-Create a `docker-compose.yml` file:
+```bash
+# Clone the repository
+git clone https://github.com/orgoj/weblogproxy.git
+cd weblogproxy
+
+# Build the application
+go build -o weblogproxy ./cmd/weblogproxy
+
+# Copy and edit the configuration file
+cp config/example.yaml config/config.yaml
+# Edit config/config.yaml to your needs
+
+# Run the application
+./weblogproxy -config config/config.yaml
+```
+
+## Configuration
+
+WebLogProxy is configured through a YAML configuration file. The file is divided into sections that control the server, security settings, log destinations, and log rules.
+
+Create a new configuration file based on the example:
+
+```bash
+cp config/example.yaml config/config.yaml
+```
+
+### Server Configuration
 
 ```yaml
-version: '3.8'
-
-services:
-    weblogproxy:
-        image: weblogproxy:latest
-        container_name: weblogproxy
-        restart: unless-stopped
-        ports:
-            - "8080:8080"
-        volumes:
-            - ./config:/app/config
-            - ./log:/app/log
-        environment:
-            - TZ=Europe/Prague
+server:
+  host: "0.0.0.0"  # Listen on all interfaces
+  port: 8080
+  mode: "standalone"  # standalone or embedded
+  domain: "log.example.com"  # Required for standalone mode
+  path_prefix: ""  # Required for embedded mode
+  # Add other server settings as needed (CORS, headers, etc.)
 ```
 
-Then run:
+## API Endpoints
 
-```bash
-docker compose up -d
-```
+The server provides the following endpoints:
 
+* **GET /logger.js**: Returns a JavaScript for client-side logging. Requires `site_id` parameter, optional `gtm_id`.
+* **POST /log**: Receives log data from the client. Requires a valid token from /logger.js.
+* **GET /health**: Simple health check endpoint.
 
-### Configuration
+## /logger.js Endpoint
 
-Configuration is done via a YAML file. See `config` for examples.
-
-### Key Sections:
-
-*   `server`: Host, port, mode (`standalone`/`embedded`), `domain` (for standalone mode), `path_prefix` (for embedded), CORS settings, custom headers for `/logger.js`, request limits (body size, rate limit), trusted proxies.
-    *   CORS settings include:
-        *   `enabled`: Turn CORS support on/off
-        *   `allowed_origins`: Array of allowed origins (must be complete URLs starting with http:// or https://)
-        *   `max_age`: Cache duration for preflight requests in seconds
-    *   Note: Using wildcard "*" in allowed_origins is supported but not recommended for production environments
-*   `security`: Token secret and expiration duration.
-*   `log_destinations`: Define named outputs (type: `file`, `gelf`).
-    *   `file`: `path`, `format` (`json`/`text`), `rotation` (`max_size` in MB - integer value with minimum 1MB due to Lumberjack library limitations, `max_age` in Lumberjack duration format, `max_backups`, `compress`).
-    *   `gelf`: `host`, `port`, `protocol`, `compression_type`.
-    *   `add_log_data`: Destination-specific data enrichment.
-*   `log_config`: An ordered list of rules controlling processing.
-    *   `condition`: Matching conditions including:
-        *   `site_id`: Match by site identifier
-        *   `gtm_ids`: Match by Google Tag Manager IDs
-        *   `user_agents`: Match by user agent patterns (supports glob)
-        *   `ips`: Match by client IP addresses/CIDRs
-        *   `headers`: Match by HTTP request headers. Supports three value types:
-            *   String value: Header must exist with exactly this value
-            *   Boolean `true`: Header must exist (any value)
-            *   Boolean `false`: Header must NOT exist
-    *   `add_log_data`: Enrichment data to add to log records. Supports a special `value: "false"` to remove previously defined fields:
-        *   To remove a field previously added by a rule or destination, use `{name: "field_name", source: "static", value: "false"}`
-
-## URL Behavior
-
-WebLogProxy supports two operational modes that affect URL generation:
-
-* **Embedded Mode**: When running in embedded mode (`server.mode: "embedded"`), the application generates relative URLs for internal endpoints. This mode requires setting a `server.path_prefix` value to specify the URL path where the application is mounted.
-
-* **Standalone Mode**: When running in standalone mode (`server.mode: "standalone"`), the application generates absolute URLs that include protocol and domain. This mode requires setting a `server.domain` value to specify the domain name used to construct the absolute URLs.
-
-## JavaScript Logger Behavior
-
-The `/logger.js` endpoint generates JavaScript code with the following characteristics:
+The `/logger.js` endpoint is the entry point for the logging system. It returns a JavaScript file that sets up the logging infrastructure in the client's browser. The returned JavaScript has two possible behaviors:
 
 * **When Logging is Enabled**: Returns a full-featured JavaScript that includes a token, configured log URL, and all necessary functionality for logging and script injection.
 
-* **When Logging is Disabled**: Returns the same JavaScript structure but with `logEnabled: false`, empty token, and empty log URL. The log function becomes a no-op function that silently ignores all calls.
+* **When Logging is Disabled**: Returns a JavaScript with a no-op function that silently ignores all calls, without any configuration object.
 
 * **Script Injection**: Always includes the scripts configured in matching rules, even when logging is disabled. This allows for injecting tracking or other scripts independently of the logging functionality.
 
@@ -127,20 +93,20 @@ The logger operates invisibly in the browser with no console output, ensuring qu
 
 ## HTML Usage Example
 
-To use WebLogProxy in your HTML, include the following script and call the `window.weblogproxy.log` function to log events:
+To use WebLogProxy in your HTML, include the following script and call the `window.wlp.log` function to log events:
 
 ```html
 <script src="https://yourdomain.com/logger.js?site_id=example.com"></script>
 <script>
     // Example log event
-    window.weblogproxy.log({
+    window.wlp.log({
         event: 'button_click',
         buttonId: 'logButton',
     });
 </script>
 ```
 
-In this example, the `logger.js` script is included, and the `window.weblogproxy.log` function is called to log an event. The event data is sent to the WebLogProxy server.
+In this example, the `logger.js` script is included, and the `window.wlp.log` function is called to log an event. The event data is sent to the WebLogProxy server.
 
 ## Log File Format
 

@@ -9,12 +9,10 @@ GET {{logger_js_url}}?gtm_id={{valid_gtm_id}}
 HTTP 200
 [Asserts]
     header "Content-Type" contains "application/javascript"
-    body contains "logEnabled: false,"
-    body contains "token: \"\""
-    body contains "logUrl: \"\""
-    body contains "scriptsToInject: ["
-    body contains "]"
-    body contains "window.weblogproxy"
+    body contains "window.wlp = window.wlp || {}"
+    body contains "window.wlp.log = function() {}"
+    body not contains "logEnabled: true"
+    body not contains "scriptsToInject"
 
 # Test 1.5: Get logger.js with invalid site_id format
 GET {{logger_js_url}}?site_id=invalid!site?id
@@ -23,12 +21,10 @@ GET {{logger_js_url}}?site_id=invalid!site?id
 HTTP 200
 [Asserts]
     header "Content-Type" contains "application/javascript"
-    body contains "logEnabled: false,"
-    body contains "token: \"\""
-    body contains "logUrl: \"\""
-    body contains "scriptsToInject: ["
-    body contains "]"
-    body contains "window.weblogproxy"
+    body contains "window.wlp = window.wlp || {}"
+    body contains "window.wlp.log = function() {}"
+    body not contains "logEnabled: true"
+    body not contains "scriptsToInject"
 
 # Test 1.6: Get logger.js with invalid gtm_id format
 GET {{logger_js_url}}?site_id={{valid_site_id}}&gtm_id=invalid!gtm?id
@@ -37,9 +33,7 @@ GET {{logger_js_url}}?site_id={{valid_site_id}}&gtm_id=invalid!gtm?id
 HTTP 200
 [Asserts]
     header "Content-Type" contains "application/javascript"
-    body contains "logEnabled: false,"
-    body contains "token: \"\""
-    body contains "logUrl: \"\""
-    body contains "scriptsToInject: ["
-    body contains "]"
-    body contains "window.weblogproxy" 
+    body contains "window.wlp = window.wlp || {}"
+    body contains "window.wlp.log = function() {}"
+    body not contains "logEnabled: true"
+    body not contains "scriptsToInject" 

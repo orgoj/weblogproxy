@@ -15,9 +15,9 @@ RUN go mod download
 COPY . .
 
 # Build the application with version information
-ARG VERSION=0.9.0
-ARG BUILD_DATE=undefined
-ARG COMMIT_HASH=undefined
+ARG VERSION
+ARG BUILD_DATE
+ARG COMMIT_HASH
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags "-X github.com/orgoj/weblogproxy/internal/version.Version=${VERSION} \

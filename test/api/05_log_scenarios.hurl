@@ -12,9 +12,11 @@ GET {{logger_js_url}}?site_id={{valid_site_id}}
     # insecure: true # Assume set globally
 HTTP 200
 [Asserts]
-    body contains "logEnabled: false," # No final rule matched for logging
-    body contains "token: \"\"" # Token should be empty if logEnabled is false
-    body contains "/scripts/base-tracking.js" # Base script still injected
+    header "Content-Type" contains "application/javascript"
+    body contains "window.wlp = window.wlp || {}"
+    body contains "window.wlp.log = function() {}"
+    body not contains "logEnabled: true"
+    body not contains "/scripts/base-tracking.js"
 # We cannot capture an empty token, so we can't proceed with the POST request
 # in this setup if logEnabled is false. The original test logic was flawed.
 

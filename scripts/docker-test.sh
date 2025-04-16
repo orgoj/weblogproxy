@@ -4,10 +4,11 @@ set -e
 # Load common configuration
 source "$(dirname "$0")/config.sh"
 
+# Allow specifying the full image name including tag
+IMAGE_NAME=${1:-"weblogproxy:latest"}
+
 CONTAINER_NAME="weblogproxy-test"
 TEST_PORT=8080
-# Allow overriding the image name
-IMAGE_NAME=${1:-"weblogproxy:test"}
 
 # Clean up on script exit
 # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
@@ -19,18 +20,13 @@ function cleanup {
 }
 trap cleanup EXIT
 
-# Skip build if image name is provided
-if [ "$#" -eq 0 ]; then
-  echo "=== Testing Docker Build & Run ==="
-  echo "Building Docker image with version $VERSION..."
-  docker build -t "$IMAGE_NAME" \
-    --build-arg VERSION="$VERSION" \
-    --build-arg BUILD_DATE="$BUILD_DATE" \
-    --build-arg COMMIT_HASH="$COMMIT_HASH" \
-    .
-else
-  echo "=== Testing Docker Run ==="
-  echo "Using provided image: $IMAGE_NAME"
+echo "=== Testing Docker Image ==="
+echo "Using image: $IMAGE_NAME"
+
+# Check if image exists
+if ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
+  echo "ERROR: Image $IMAGE_NAME does not exist. Run docker-build.sh first or specify an existing image."
+  exit 1
 fi
 
 echo "Running Docker container..."

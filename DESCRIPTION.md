@@ -131,12 +131,12 @@
 							- In `embedded` mode: Generates relative URLs for internal endpoints using the configured `path_prefix`.
 							- In `standalone` mode: Generates absolute URLs including protocol and the configured `domain`.
 						- **If logging is disabled:**
-							- Returns the same JavaScript structure as when enabled, but with `logEnabled: false`, empty token, and empty log URL.
+							- Returns a JavaScript with a no-op function that silently ignores all calls, without any configuration object.
 							- The log function becomes a no-op function that silently ignores all calls.
 							- Still includes scripts configured in matching rules, allowing for script injection independent of logging functionality.
 						- **If logging is enabled:**
 							- Generates a security token with the configured expiration time.
-							- Returns a JavaScript defining `window.weblogproxy` object with:
+							- Returns a JavaScript defining `window.wlp` object with:
 								- A `log(data)` function: Accepts any data type. If `data` is not an object, it's wrapped into `{ "msg": String(data) }`. The resulting object is sent along with `site_id`, `gtm_id`, and the generated `token` asynchronously via POST request to the `/log` endpoint (under the `data` key in the request body).
 						- Generates code for script injection *only if* the accumulated and deduplicated list of scripts from matching rules is not empty. This code dynamically appends the configured script tags to the document.
 				- ##### `/log`
