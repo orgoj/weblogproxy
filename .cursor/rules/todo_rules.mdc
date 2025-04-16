@@ -14,4 +14,8 @@ alwaysApply: false
 - Process user feedback (if any) and repeat the previous step
 - If you have a work order, start implementation following the approved procedure
 - Work automatically, simply, and cleanly, as a professional senior developer
-- Once all tasks are completed, proceed according to `@commit_rules.mdc`
+- When a task is complete:
+  1. First, mark it as done with `[x]` in TODO.md
+  2. Add corresponding entries to CHANGELOG.md
+  3. REMOVE the completed tasks entirely from TODO.md (don't just mark them as [x])
+  4. Follow `@commit_rules.mdc` for the commit process
