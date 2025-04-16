@@ -47,8 +47,8 @@ func (m *Manager) InitLoggers(destinations []config.LogDestination) error {
 		switch dest.Type {
 		case "file":
 			lgr, err = NewFileLogger(dest)
-		// case "gelf":
-		// 	lgr, err = NewGelfLogger(dest)
+		case "gelf":
+			lgr, err = NewGelfLogger(dest)
 		// case "stdout":
 		// 	lgr, err = NewStdoutLogger(dest)
 		default:

@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added
-- 
+- Implemented GELF Logger for sending logs to Graylog servers with support for both UDP and TCP protocols
 
 ### Changed
 - 

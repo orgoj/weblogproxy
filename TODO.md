@@ -2,7 +2,7 @@
 
 ## GELF (LATER after everything else works and all tests)
 
-- [-] Implement GELF Logger
+- [x] Implement GELF Logger
 - [ ] Add support for TCP GELF
 - [ ] Add support for ZLIB GELF compression
 - [ ] Implement log truncation based on MaxBodySize for GELF and other formats

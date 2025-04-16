@@ -10,7 +10,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require gopkg.in/natefinch/lumberjack.v2 v2.2.1
+require (
+	gopkg.in/Graylog2/go-gelf.v2 v2.0.0-20191017102106-1550ee647df0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+)
 
 require (
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
