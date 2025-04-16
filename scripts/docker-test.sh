@@ -16,6 +16,12 @@ function cleanup {
   echo "Cleaning up..."
   docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
   docker rm "$CONTAINER_NAME" >/dev/null 2>&1 || true
+  
+  if [ -n "$CONTAINER_NAME_UID_TEST" ]; then
+    docker stop "$CONTAINER_NAME_UID_TEST" >/dev/null 2>&1 || true
+    docker rm "$CONTAINER_NAME_UID_TEST" >/dev/null 2>&1 || true
+  fi
+  
   echo "Done."
 }
 trap cleanup EXIT
@@ -85,8 +91,38 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
     if echo "$VERSION_OUTPUT" | grep -q "\"version\":\"$VERSION\""; then
       echo "SUCCESS: Version endpoint returned correct version"
       echo
-      echo "=== Docker test completed successfully ==="
-      exit 0
+      echo "Testing UID/GID functionality..."
+      
+      # Set test UID/GID - using values unlikely to conflict with system users
+      TEST_UID=9999
+      TEST_GID=9999
+      CONTAINER_NAME_UID_TEST="${CONTAINER_NAME}-uid-test"
+      
+      echo "Running container with custom UID:$TEST_UID GID:$TEST_GID..."
+      docker run -d --name $CONTAINER_NAME_UID_TEST -e PUID=$TEST_UID -e PGID=$TEST_GID "$IMAGE_NAME"
+      sleep 3
+      
+      echo "Checking if container is running with proper UID/GID..."
+      UID_OUTPUT=$(docker exec $CONTAINER_NAME_UID_TEST id -u weblogproxy)
+      GID_OUTPUT=$(docker exec $CONTAINER_NAME_UID_TEST id -g weblogproxy)
+      
+      echo "Container user UID: $UID_OUTPUT (expected: $TEST_UID)"
+      echo "Container user GID: $GID_OUTPUT (expected: $TEST_GID)"
+      
+      if [ "$UID_OUTPUT" = "$TEST_UID" ] && [ "$GID_OUTPUT" = "$TEST_GID" ]; then
+        echo "SUCCESS: UID/GID correctly set to $TEST_UID:$TEST_GID"
+        docker stop $CONTAINER_NAME_UID_TEST
+        docker rm $CONTAINER_NAME_UID_TEST
+        CONTAINER_NAME_UID_TEST=""
+        
+        echo
+        echo "=== Docker test completed successfully ==="
+        exit 0
+      else
+        echo "ERROR: UID/GID test failed"
+        docker logs $CONTAINER_NAME_UID_TEST
+        exit 1
+      fi
     else
       echo "ERROR: Version endpoint returned incorrect version"
       echo "Expected version: $VERSION"

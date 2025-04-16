@@ -31,7 +31,7 @@ alwaysApply: true
 - Write comprehensive error handling.
 - Add proper logging.
 - Use meaningful variable and function names.
-- Add proper documentation for public APIs.
+- Add proper documentation for public APIs
 - Keep functions small and focused.
 - Use dependency injection where appropriate.
 - Handle edge cases.
@@ -49,3 +49,15 @@ alwaysApply: true
 - Use mocks for external dependencies.
 - Test error cases and edge conditions.
 - Ensure test coverage for critical components.
+
+## Docker Best Practices
+- Používej `git add .` pro přidání všech změněných souborů najednou.
+- Zajisti, aby skript entrypoint.sh správně řešil cestu k binárním souborům v kontejneru.
+- Kontroluj správnost cest v CMD v Dockerfile pro spuštění aplikace.
+- Po úpravách Docker souborů vždy spusť `mise run docker-test` pro ověření funkčnosti.
+- Při změnách konfigurace Dockeru aktualizuj CHANGELOG.md.
+- Označ hotové úkoly v TODO.md po jejich implementaci a otestování.
+- U binárních aplikací v Dockeru správně nastav cesty vzhledem k WORKDIR.
+- Dbej na správné nastavení a předávání UID/GID pro běh kontejneru.
+- Binární soubory by měly být v /usr/local/bin pro následování standardních konvencí.
+- Testuj změny Dockeru s různými parametry (UID/GID, mounted volumes).

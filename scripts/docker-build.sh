@@ -17,3 +17,14 @@ docker build -t "$IMAGE_NAME" -t "$BASE_NAME:$VERSION" \
   .
 
 echo "Build successful: $IMAGE_NAME and $BASE_NAME:$VERSION with version $VERSION"
+echo ""
+echo "Usage instructions:"
+echo "  Run with default user (UID 1000, GID 1000):"
+echo "    docker run -p 8080:8080 $IMAGE_NAME"
+echo ""
+echo "  Run with custom UID/GID:"
+echo "    docker run -p 8080:8080 -e PUID=<uid> -e PGID=<gid> $IMAGE_NAME"
+echo ""
+echo "  Example - run as current user:"
+echo "    docker run -p 8080:8080 -e PUID=\$(id -u) -e PGID=\$(id -g) $IMAGE_NAME"
+echo ""

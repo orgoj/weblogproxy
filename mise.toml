@@ -71,6 +71,7 @@ description = "Build Docker image"
 run = "./scripts/docker-build.sh"
 sources = ["Dockerfile", "cmd/**/*", "internal/**/*"]
 outputs = { auto = true }
+depends = ["test"]
 
 [tasks.docker-run]
 description = "Run Docker container"

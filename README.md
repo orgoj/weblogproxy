@@ -31,6 +31,28 @@ cp config/example.yaml config/config.yaml
 docker-compose up -d
 ```
 
+### Docker Usage with Custom UID/GID
+
+By default, the Docker container runs with a non-root user with UID/GID 1000. You can customize this by setting environment variables:
+
+```bash
+# Run with specific UID/GID (replace 1001/1001 with your values)
+docker run -p 8080:8080 -e PUID=1001 -e PGID=1001 weblogproxy:latest
+
+# Run as the current user
+docker run -p 8080:8080 -e PUID=$(id -u) -e PGID=$(id -g) weblogproxy:latest
+
+# Using docker-compose (add to docker-compose.yml)
+# environment:
+#   - PUID=1001
+#   - PGID=1001
+```
+
+This is useful for:
+- Matching permissions with the host user for mounted volumes
+- Running the application with the same permissions as the host user
+- Ensuring logs and config files are owned by the appropriate user
+
 ### Building from Source
 
 ```bash

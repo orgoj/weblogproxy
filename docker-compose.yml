@@ -15,6 +15,13 @@ services:
       - ./log:/app/log
     environment:
       - TZ=Europe/Prague
+      # Set custom UID and GID for the application
+      # Use your current user's UID and GID with:
+      # PUID=$(id -u)
+      # PGID=$(id -g)
+      # Or uncomment and set values below:
+      # - PUID=1000 # Default is 1000, set your desired UID here
+      # - PGID=1000 # Default is 1000, set your desired GID here
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 30s
