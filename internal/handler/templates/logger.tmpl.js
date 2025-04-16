@@ -5,9 +5,9 @@ Go template comments like this one are not rendered in the output.
 */}}
 (function() {
     'use strict';
-
+    {{if eq .LogEnabled "true"}}
     const config = {
-        logEnabled: {{.LogEnabled}},
+        logEnabled: true,
         siteId: "{{.SiteID}}",
         gtmId: "{{.GtmID}}",
         token: "{{.Token}}",
@@ -24,10 +24,6 @@ Go template comments like this one are not rendered in the output.
     };
 
     function sendLog(data) {
-        if (!config.logEnabled) {
-            return;
-        }
-
         const payload = {
             token: config.token,
             site_id: config.siteId,
@@ -63,4 +59,8 @@ Go template comments like this one are not rendered in the output.
     if (config.scriptsToInject && config.scriptsToInject.length > 0) {
         config.scriptsToInject.forEach(injectScript);
     }
-})(); 
+    {{else}}
+    window.weblogproxy = window.weblogproxy || {};
+    window.weblogproxy.log = function() {};
+    {{end}}
+})();

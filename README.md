@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/github/license/orgoj/weblogproxy)
 ![Go Version](https://img.shields.io/github/go-mod/go-version/orgoj/weblogproxy)
 
-**Current version: 0.9.1** - See [CHANGELOG.md](CHANGELOG.md) for details
+**Current version: 0.9.2** - See [CHANGELOG.md](CHANGELOG.md) for details
 
 ## Overview
 
@@ -56,16 +56,16 @@ version: '3.8'
 
 services:
     weblogproxy:
-    image: weblogproxy:latest
-    container_name: weblogproxy
-    restart: unless-stopped
-    ports:
-        - "8080:8080"
-    volumes:
-        - ./config:/app/config
-        - ./log:/app/log
-    environment:
-        - TZ=Europe/Prague
+        image: weblogproxy:latest
+        container_name: weblogproxy
+        restart: unless-stopped
+        ports:
+            - "8080:8080"
+        volumes:
+            - ./config:/app/config
+            - ./log:/app/log
+        environment:
+            - TZ=Europe/Prague
 ```
 
 Then run:
