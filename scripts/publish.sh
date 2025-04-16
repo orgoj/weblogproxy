@@ -22,8 +22,8 @@ fi
 
 # Kontrola zda existuje tag
 if git tag | grep -q "^$TAG_NAME$"; then
-    echo "CHYBA: Tag $TAG_NAME již existuje!"
-    exit 1
+    echo "WARNING: Tag $TAG_NAME již existuje!"
+    IGNORE_TAG=true
 fi
 
 # Kontrola zda verze v CHANGELOG.md odpovídá
@@ -43,12 +43,17 @@ fi
 echo "=== Publikování verze $TAG_NAME ==="
 
 # 1. Tag repozitáře
-echo "Označuji repozitář verzí $TAG_NAME..."
-git tag "$TAG_NAME"
+if [ -z "$IGNORE_TAG" ]; then
+    echo "Označuji repozitář verzí $TAG_NAME..."
+    git tag "$TAG_NAME"
+fi
 
 # 2. Push do GitHubu
 echo "Nahrávám tag do GitHubu..."
-git push origin "$TAG_NAME"
+git push origin master
+if [ -z "$IGNORE_TAG" ]; then
+    git push origin "$TAG_NAME"
+fi
 
 echo "=== Publikování dokončeno ==="
 echo "Weblogproxy verze $VERSION byla úspěšně označena tagem na GitHubu."

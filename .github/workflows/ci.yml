@@ -18,16 +18,24 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: '1.24.2'
 
       - name: Install dependencies
         run: go mod download
+
+      - name: Install security tools
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest && go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run security checks
+        run: |
+          gosec ./...
+          govulncheck ./...
 
       - name: Run tests
         run: go test -v ./...
 
       - name: Validate example config
-        run: go run ./cmd/weblogproxy --config config/example.yaml -validate
+        run: go run ./cmd/weblogproxy --test --config config/example.yaml
 
       - name: Install Hurl
         if: github.event_name != 'pull_request'
@@ -56,13 +64,11 @@ jobs:
       - name: Get version information
         id: version
         run: |
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
-          else
-            VERSION=$(grep -m 1 'Version = ' internal/version/version.go | sed 's/.*Version = "\(.*\)".*/\1/')
+          source scripts/config.sh
+          if [[ "$VERSION" == *-dev ]]; then
+            echo "Skipping Docker build for dev version"
+            exit 1
           fi
-          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%S%z')
-          COMMIT_HASH=$(git rev-parse --short HEAD)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
           echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
