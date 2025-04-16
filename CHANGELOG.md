@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.10.0] - 2025-04-16
 
 ### Added
 - Implemented GELF Logger for sending logs to Graylog servers with support for both UDP and TCP protocols
@@ -8,12 +8,6 @@
 - Implemented compression for GELF (gzip, zlib, none) with unit tests
 - Implemented GELF message truncation based on `max_message_size` configuration.
 - Implemented message truncation for File logger (text and JSON formats) based on `max_message_size` configuration.
-
-### Changed
-- 
-
-### Fixed
-- 
 
 
 ## [0.9.4] - 2025-04-16
