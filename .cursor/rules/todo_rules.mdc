@@ -7,6 +7,7 @@ alwaysApply: false
 - Read the first block of tasks
 - Identify related tasks that can be done simultaneously
 - Mark tasks you are working on with `[-]`
+- Read [DESCRIPTION.md](mdc:DESCRIPTION.md) for general application concept
 - Perform a code analysis to determine how to resolve the tasks
 - Find the latest information and procedures available online
 - Propose solutions with multiple options, write them to the user, and wait for approval to proceed

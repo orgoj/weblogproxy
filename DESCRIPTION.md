@@ -69,11 +69,12 @@
 						- `log_destinations`: Optional list of destination names (must match entries from `log_destinations`) to send logs to if this rule matches. If absent or empty, logs are sent to all enabled destinations.
 					- `log_destinations`: A list of destinations where logs should be sent. Each destination defines:
 						- `name`: A unique identifier/name for this destination.
-						- `type`: Destination type ('file' or 'gelf'). New types can be added by implementing the Logger interface.
+						- `type`: Destination type ('file', 'syslog', or 'gelf'). New types can be added by implementing the Logger interface.
 						- `enabled`: Boolean flag to enable/disable the destination.
 						- Type-specific settings:
 						    - `file`: `path`, `format` ('json' or 'text'), `rotation` (optional: max_size in MB as a string value with minimum 1MB due to Lumberjack library limitations, `max_age` in duration format (e.g., "1d" for 1 day), `max_backups`, `compress`). The 'json' format outputs Bunyan-compatible JSON Lines.
-						    - `gelf`: `host`, `port`, `protocol` ('udp' or 'tcp'), `compression` ('gzip', 'zlib', or 'none'). GELF output adheres to GELF v1.1 specification (e.g., custom fields prefixed with `_`).
+						    - `syslog`: Forwards logs to a syslog server for centralized logging.
+						    - `gelf`: `host`, `port`, `protocol` ('udp' or 'tcp'), `compression` ('gzip', 'zlib', or 'none'). GELF output adheres to GELF v1.1 specification (e.g., custom fields prefixed with `_`). Also supports optional `additional_fields` to add custom fields to all GELF messages.
 						- `add_log_data`: Optional list of actions to enrich log data specific to this destination, applied *after* rule-based enrichment but *before* merging client data. Uses the same structure as `add_log_data` in `log_config`. Can overwrite fields set by rules or add new ones.
 			- #### Core Components
 				- Config Parser: Loads and validates YAML configuration.
@@ -209,6 +210,9 @@
 			- Configurable request size and rate limits (`server.request_limits`).
 			- Logging of unauthorized access attempts.
 			- Input sanitization and validation for all endpoints.
+			- Token-based Authentication: Each client receives a signed token via `/logger.js`, which must be included in log requests.
+			- Error Handling & Logging: All errors are logged with context for audit and debugging.
+			- Separation of Destinations: Logs can be routed to different destinations, isolating sensitive data if needed.
 		- ### Containerization
 			- Minimal Alpine Linux base image.
 			- Multi-stage build.
@@ -254,6 +258,48 @@
 					4. Executes corresponding Bash scripts (`*.sh`) for validation if they exist
 					5. Stops the server
 					6. Reports overall success or failure
+		- ### Architecture Overview
+			```mermaid
+			graph TD
+			  Client[Web Client / Browser]
+			  Client -->|/logger.js| WebLogProxy[WebLogProxy Server]
+			  Client -->|/log| WebLogProxy
+			  WebLogProxy -->|Log Forwarding| Destinations[Log Destinations]
+			  Destinations -->|File, Syslog, GELF| Storage[Storage/External Systems]
+			```
+
+			- **Web Client**: Loads logger.js and sends logs via HTTP.
+			- **WebLogProxy Server**: Handles log ingestion, rule processing, enrichment, security, and forwards logs.
+			- **Log Destinations**: Configurable outputs (file, syslog, GELF, etc.).
+		- ### Development & Versioning
+			- #### Mise Tasks
+				This project uses [Mise](https://mise.jdx.dev/) for task automation. Below is a list of key tasks:
+				
+				| Task Name | Description |
+				|-----------|-------------|
+				| build | Build the weblogproxy binary executable |
+				| test | Run all tests |
+				| lint | Run Go linters |
+				| security-check | Run all security checks |
+				| docker-build | Build the Docker image |
+				| docker-test | Test Docker image and functionality |
+				| publish | Publish a new version |
+				| version-bump-dev | Set version to -dev and prepare [Unreleased] changelog section |
+				| version-bump-release | Bump version for release and update changelog |
+				
+			- #### Versioning Process
+				WebLogProxy uses a two-phase versioning process:
+
+				- **Development version:**
+				  - Run `mise run version-bump-dev`.
+				  - Sets the version with the `-dev` suffix (e.g., `1.2.3-dev`) in `internal/version/version.go`.
+				  - Prepares the `[Unreleased]` section in `CHANGELOG.md`.
+				  - All builds and Docker images will be marked as dev.
+
+				- **Release version:**
+				  - Run `mise run version-bump-release -- -y patch` (or `minor`/`major`).
+				  - Removes the `-dev` suffix from the version, moves the contents of `[Unreleased]` to a new section with the version number and date in the changelog.
+				  - All builds and Docker images will be marked as release.
 	- ## Project Structure
 		- /cmd - Application entry points (weblogproxy main app, config-validator)
 		- /internal - Private application code (including core components like Rule Processor)
@@ -303,3 +349,26 @@
 			docker build -t weblogproxy:latest .
 			docker run -p 8080:8080 -v $(pwd)/config:/app/config weblogproxy:latest
 			```
+		
+		- ### Docker Usage with Custom UID/GID
+			By default, the Docker container runs with a non-root user with UID/GID 1000. You can customize this by setting environment variables:
+
+			```bash
+			# Run with specific UID/GID (replace 1001/1001 with your values)
+			docker run -p 8080:8080 -e PUID=1001 -e PGID=1001 weblogproxy:latest
+
+			# Run as the current user
+			docker run -p 8080:8080 -e PUID=$(id -u) -e PGID=$(id -g) weblogproxy:latest
+			```
+
+			#### Using docker-compose
+			```yaml
+			environment:
+			  - PUID=1001
+			  - PGID=1001
+			```
+
+			This is useful for:
+			- Matching permissions with the host user for mounted volumes
+			- Running the application with the same permissions as the host user
+			- Ensuring logs and config files are owned by the appropriate user

@@ -361,7 +361,7 @@ WebLogProxy uses a two-phase versioning process:
   - Removes the `-dev` suffix from the version, moves the contents of `[Unreleased]` to a new section with the version number and date in the changelog.
   - All builds and Docker images will be marked as release.
 
-This ensures it is always clear whether a build is a development or production build. Everything is fully automated and reflected in the changelog and the `/version` API.
+This ensures it is always clear whether a build is a development or production build. Everything is fully automated and reflected in the changelog.
 
 ## Contributing
 
