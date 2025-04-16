@@ -121,7 +121,7 @@ log_destinations:
     host: "graylog.example.com"
     port: 12201
     protocol: "udp"
-    compression: true
+    compression_type: "gzip"
     add_log_data:
       - name: "facility"
         source: "static"

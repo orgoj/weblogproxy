@@ -252,7 +252,7 @@ destinations:
     options:
       host: "graylog.example.com:12201"  # Graylog server address with port
       protocol: "udp"                   # Protocol: "udp" or "tcp"
-      compression: false                # Optional: Enable ZLIB compression
+      compression_type: "gzip"          # Optional: Compression type - "gzip", "zlib", or "none" (default: "none")
       additional_fields:                # Optional: Add custom fields to all GELF messages
         environment: "production"
         application: "weblogproxy"

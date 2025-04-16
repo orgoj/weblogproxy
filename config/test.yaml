@@ -190,6 +190,5 @@ log_destinations:
   #   host: "gelf.example.com"
   #   port: 12202
   #   protocol: "tcp" # Test TCP (if supported)
-  #   compression: false
-  #   fields:
-  #     status: "disabled" 
+  #   compression_type: "none"
+  #   fields: 
