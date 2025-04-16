@@ -87,7 +87,7 @@ depends = ["docker-build"]
 
 [tasks.docker-ssh-copy]
 description = "Deploy Docker image to remote server via SSH (usage: mise run docker-ssh-copy -- [server] [additional_ssh_options])"
-run = "./scripts/docker-ssh-copy.sh ${@}"
+run = "./scripts/docker-ssh-copy.sh"
 depends = ["docker-test"]
 
 [tasks.version-bump-dev]
@@ -96,11 +96,11 @@ run = "./scripts/bump-version-dev.sh"
 
 [tasks.version-bump-release]
 description = "Bump version for release (major|minor|patch), move changelog section"
-run = "./scripts/bump-version-release.sh ${@}"
+run = "./scripts/bump-version-release.sh"
 
 [tasks.publish]
 description = "Publish version (usage: mise run publish -- [version])"
-run = "./scripts/publish.sh ${@}"
+run = "./scripts/publish.sh"
 depends = ["test", "docker-test"]
 
 [tasks.install-sec-tools]
