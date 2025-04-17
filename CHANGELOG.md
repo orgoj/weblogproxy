@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.11.0] - 2025-04-17
 
 ### Added
 - Added configuration option `server.health_allowed_ips` to restrict health endpoints based on CIDR ranges with middleware and tests
