@@ -104,6 +104,8 @@ server:
   mode: "standalone"  # standalone or embedded
   domain: "log.example.com"  # Required for standalone mode
   path_prefix: ""  # Required for embedded mode
+  health_allowed_ips:
+    - "192.168.0.0/16"  # Optional list of IP or CIDR strings allowed to access the /health endpoint (default: allow all)
   # Add other server settings as needed (CORS, headers, etc.)
 ```
 
