@@ -3,12 +3,11 @@ description:
 globs: 
 alwaysApply: true
 ---
-
 ## Startup Chat Rules
 
 - Read @DESCRIPTION.md at chat start; this is the detailed documentation for creating the application.
 - Read @README.md at chat start; this is the application description for users.
-- Follow everywhere "Basic Goal" from [DESCRIPTION.md](mdc:DESCRIPTION.md)
+- Follow everywhere "Basic Goal" from @DESCRIPTION.md
 - Mark DONE items in @TODO.md as done after they are implemented.
 - Update README.md and DESCRIPTION.md with new implementations.
 - Change relevant tests if changing logic.
@@ -51,13 +50,13 @@ alwaysApply: true
 - Ensure test coverage for critical components.
 
 ## Docker Best Practices
-- Používej `git add .` pro přidání všech změněných souborů najednou.
-- Zajisti, aby skript entrypoint.sh správně řešil cestu k binárním souborům v kontejneru.
-- Kontroluj správnost cest v CMD v Dockerfile pro spuštění aplikace.
-- Po úpravách Docker souborů vždy spusť `mise run docker-test` pro ověření funkčnosti.
-- Při změnách konfigurace Dockeru aktualizuj CHANGELOG.md.
-- Označ hotové úkoly v TODO.md po jejich implementaci a otestování.
-- U binárních aplikací v Dockeru správně nastav cesty vzhledem k WORKDIR.
-- Dbej na správné nastavení a předávání UID/GID pro běh kontejneru.
-- Binární soubory by měly být v /usr/local/bin pro následování standardních konvencí.
-- Testuj změny Dockeru s různými parametry (UID/GID, mounted volumes).
+- Use `git add .` to add all changed files at once.
+- Ensure the entrypoint.sh script correctly handles the path to binary files in the container.
+- Check the correctness of paths in the Dockerfile for application startup.
+- After Docker file changes, always run `mise run docker-test` to verify functionality.
+- Update CHANGELOG.md after Docker configuration changes.
+- Mark completed tasks in TODO.md after implementation and testing.
+- For binary applications in Docker, correctly set paths relative to WORKDIR.
+- Ensure correct setting and passing of UID/GID for container runtime.
+- Binary files should be in /usr/local/bin for following standard conventions.
+- Test Docker changes with different parameters (UID/GID, mounted volumes).

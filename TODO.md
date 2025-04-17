@@ -19,3 +19,4 @@
 - [?] Optional javascript template in condition
 - [?] Add basic load tests.
 - [?] Error log to file instead of stderr, not a problem for docker now, could be log_destination.name=internal later, which would support rotation
+- [?] Setup https://www.coderabbit.ai/
