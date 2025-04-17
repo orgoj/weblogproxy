@@ -378,3 +378,33 @@ WebLogProxy was created because I needed to log events from Google Tag
 Manager. I developed the entire project using the Cursor IDE, without 
 any prior experience in the Go programming language. I didn't write a 
 single line of code and was just learning to use the editor.
+
+### Code estimation by [scc](https://github.com/boyter/scc):
+
+v0.10.2
+
+```bash
+$ docker run --rm -it -v "$PWD:/pwd"  ghcr.io/boyter/scc:master scc /pwd
+───────────────────────────────────────────────────────────────────────────────
+Language                 Files     Lines   Blanks  Comments     Code Complexity
+───────────────────────────────────────────────────────────────────────────────
+Go                          29      7573      704       700     6169       1154
+Shell                       15      1057      174       181      702        113
+YAML                         8       673       59       115      499          0
+Markdown                     4       840      134         0      706          0
+JSON                         2        25        0         0       25          0
+Docker ignore                1        43       10        11       22          0
+Dockerfile                   1        77       20        20       37          7
+JavaScript                   1        69        6         3       60         11
+Plain Text                   1        21        4         0       17          0
+TOML                         1       138       24         1      113          2
+───────────────────────────────────────────────────────────────────────────────
+Total                       63     10516     1135      1031     8350       1287
+───────────────────────────────────────────────────────────────────────────────
+Estimated Cost to Develop (organic) $250,822
+Estimated Schedule Effort (organic) 8.13 months
+Estimated People Required (organic) 2.74
+───────────────────────────────────────────────────────────────────────────────
+Processed 348353 bytes, 0.348 megabytes (SI)
+───────────────────────────────────────────────────────────────────────────────
+```
