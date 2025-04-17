@@ -13,7 +13,7 @@ alwaysApply: false
   2. ADD a corresponding entry to `CHANGELOG.md` in the appropriate section (Added/Changed/Fixed)
 - If the change is relevant to the user, also update `README.md`
 - Update project documentation in **all** relevant `.md` files
-- Commit all changes:  
+- Commit all changes in English language:  
   ```bash
   git add .  
   git commit -m "Short summary of changes (max 100 characters)

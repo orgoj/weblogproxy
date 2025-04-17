@@ -329,8 +329,9 @@ graph TD
   security-check --> govulncheck
   test-e2e --> build
   test --> build
-  run --> config-check
-  run-test --> config-check
+  config-check --> build
+  run --> test
+  run-test --> test
   test --> config-check
   test --> test-unit
   test --> test-e2e
@@ -339,7 +340,7 @@ graph TD
   ci --> security-check
   docker-test --> docker-build
   docker-ssh-copy --> docker-test
-  docker-run --> docker-build
+  docker-run --> docker-test
   docker-build --> ci
   publish --> test
   publish --> docker-test

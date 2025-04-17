@@ -45,16 +45,17 @@ description = "Validate application configuration file"
 run = "go run ./cmd/weblogproxy --test --config config/test.yaml"
 sources = ["go.*", "cmd/**/*.go", "internal/**/*.go"]
 outputs = { auto = true }
+depends = ["build"]
 
 [tasks.run]
 description = "Run weblogproxy with example configuration"
 run = "go run ./cmd/weblogproxy --config config/example.yaml"
-depends = ["config-check", "deps"]
+depends = ["test"]
 
 [tasks.run-test]
 description = "Run weblogproxy with test configuration"
 run = "go run ./cmd/weblogproxy --config config/test.yaml"
-depends = ["config-check", "deps"]
+depends = ["test"]
 
 [tasks.test-unit]
 description = "Run unit tests only"
@@ -84,7 +85,7 @@ depends = ["ci"]
 [tasks.docker-run]
 description = "Run the Docker container"
 run = "docker run -p 8080:8080 -v $(pwd)/config/example.yaml:/app/config/config.yaml weblogproxy:latest"
-depends = ["docker-build"]
+depends = ["docker-test"]
 
 [tasks.docker-test]
 description = "Test Docker image and functionality"
