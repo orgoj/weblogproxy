@@ -14,7 +14,7 @@ alwaysApply: false
 - Process user feedback (if any) and repeat the previous step
 - If you have a work order, start implementation following the approved procedure
 - Work automatically, simply, and cleanly, as a professional senior developer
-- When a task is complete:
+- ALWAYS DO WHEN TASK IS COMPLETE, REMEMBER THIS:
   1. First, mark it as done with `[x]` in TODO.md
   2. Add corresponding entries to CHANGELOG.md
   3. REMOVE the completed tasks entirely from TODO.md (don't just mark them as [x])

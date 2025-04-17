@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/orgoj/weblogproxy/internal/config"
 	"github.com/orgoj/weblogproxy/internal/handler"
+	"github.com/orgoj/weblogproxy/internal/logger"
 	"github.com/orgoj/weblogproxy/internal/rules"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,6 +33,7 @@ func TestLoggerJSHandler_MissingSiteID(t *testing.T) {
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
+		AppLogger:          logger.GetAppLogger(),
 	}
 
 	// Get the handler
@@ -67,6 +69,7 @@ func TestLoggerJSHandler_InvalidSiteID(t *testing.T) {
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
+		AppLogger:          logger.GetAppLogger(),
 	}
 
 	// Get the handler
@@ -102,6 +105,7 @@ func TestLoggerJSHandler_InvalidGtmID(t *testing.T) {
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
+		AppLogger:          logger.GetAppLogger(),
 	}
 
 	// Get the handler

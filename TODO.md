@@ -2,11 +2,6 @@
 
 ## App logger
 
-- [ ] implement pattern for logging for applicattion messages to stdout
-- [ ] add logging level to config (INFO, DEBUG, WARN, ERROR, FATAL) default WARN
-- [ ] separade config for healthcheck true/false
-- [ ] convert all log messages to use new logger
-
 ## Small enhancements
 
 - [ ] configurable allow healthcheck only from ip/CIDR list, default allow all

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -49,23 +48,29 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Initialize application logger
+	appLogger := logger.GetAppLogger()
+	if err := appLogger.SetLogLevelFromString(cfg.AppLog.Level); err != nil {
+		fmt.Printf("[WARN] Invalid log level '%s', using default: %v\n", cfg.AppLog.Level, err)
+	}
+	appLogger.SetShowHealth(cfg.AppLog.ShowHealthLogs)
+
 	// Log the version at startup
-	log.Printf("Starting %s", version.VersionInfo())
+	appLogger.Info("Starting %s", version.VersionInfo())
 
 	// --- Dependency Initialization --- //
 
 	// Initialize Logger Manager
 	loggerManager := logger.NewManager()
 	if err := loggerManager.InitLoggers(cfg.LogDestinations); err != nil {
-		log.Printf("[CRITICAL] Failed to initialize one or more loggers: %v. Exiting.\n", err)
-		os.Exit(1)
+		appLogger.Fatal("Failed to initialize one or more loggers: %v. Exiting.", err)
 	}
 	defer loggerManager.CloseAll()
 
 	// Initialize Rule Processor
 	ruleProcessor, err := rules.NewRuleProcessor(cfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize rule processor: %v", err)
+		appLogger.Fatal("Failed to initialize rule processor: %v", err)
 	}
 
 	// Prepare server dependencies
@@ -73,6 +78,7 @@ func main() {
 		Config:        cfg,
 		LoggerManager: loggerManager,
 		RuleProcessor: ruleProcessor,
+		AppLogger:     appLogger,
 	}
 
 	// --- Server Setup --- //
@@ -85,14 +91,14 @@ func main() {
 	// Start server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Server error: %v", err)
+			appLogger.Fatal("Server error: %v", err)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	fmt.Println("Received shutdown signal.")
+	appLogger.Info("Received shutdown signal.")
 
 	// The context is used to inform the server it has 5 seconds to finish
 	// the requests it is currently handling
@@ -106,6 +112,6 @@ func main() {
 	// Close loggers (already deferred)
 	// loggerManager.CloseAll()
 
-	fmt.Println("WebLogProxy shut down gracefully.")
+	appLogger.Info("WebLogProxy shut down gracefully.")
 	os.Exit(0)
 }

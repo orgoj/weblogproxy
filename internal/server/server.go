@@ -21,6 +21,7 @@ type Dependencies struct {
 	Config        *configparser.Config
 	LoggerManager *logger.Manager
 	RuleProcessor *rules.RuleProcessor
+	AppLogger     *logger.AppLogger
 }
 
 // Server represents the HTTP server
@@ -49,8 +50,11 @@ func NewServer(deps Dependencies) *Server {
 	if deps.RuleProcessor == nil {
 		panic("server: RuleProcessor dependency cannot be nil")
 	}
+	if deps.AppLogger == nil {
+		panic("server: AppLogger dependency cannot be nil")
+	}
 
-	fmt.Printf("[DEBUG] Creating server with mode: %s, path_prefix: %s\n", deps.Config.Server.Mode, deps.Config.Server.PathPrefix)
+	deps.AppLogger.Debug("Creating server with mode: %s, path_prefix: %s", deps.Config.Server.Mode, deps.Config.Server.PathPrefix)
 
 	// Set Gin mode
 	if deps.Config.Server.Mode == "production" {
@@ -82,11 +86,11 @@ func NewServer(deps Dependencies) *Server {
 		server.rateLimit = rate.Limit(float64(deps.Config.Server.RequestLimits.RateLimit) / 60.0)
 		// Set burst limit (e.g., allow bursts up to the per-minute limit)
 		server.burstLimit = deps.Config.Server.RequestLimits.RateLimit
-		fmt.Printf("[INFO] Rate limiting enabled for /log: Rate=%.2f req/sec, Burst=%d\n", server.rateLimit, server.burstLimit)
+		deps.AppLogger.Info("Rate limiting enabled for /log: Rate=%.2f req/sec, Burst=%d", server.rateLimit, server.burstLimit)
 	} else {
 		server.rateLimit = rate.Inf // No limit
 		server.burstLimit = 0
-		fmt.Println("[INFO] Rate limiting disabled for /log.")
+		deps.AppLogger.Info("Rate limiting disabled for /log.")
 	}
 
 	// Zde naparsujeme dobu expirace tokenu jednou
@@ -115,17 +119,17 @@ func (s *Server) setupRoutes(tokenExpirationDur time.Duration) {
 		basePath += "/"
 	}
 
-	fmt.Printf("[DEBUG] Setting up routes with basePath: %s\n", basePath)
+	s.deps.AppLogger.Debug("Setting up routes with basePath: %s", basePath)
 
 	group := s.router.Group(basePath)
 	{
 		// Health check endpoint (no rate limit)
 		group.GET("health", func(c *gin.Context) {
-			fmt.Printf("[DEBUG] Health endpoint called with method %s, path %s\n", c.Request.Method, c.Request.URL.Path)
+			s.deps.AppLogger.Health("Health endpoint called with method %s, path %s", c.Request.Method, c.Request.URL.Path)
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
 		group.HEAD("health", func(c *gin.Context) {
-			fmt.Printf("[DEBUG] Health endpoint called with method %s, path %s\n", c.Request.Method, c.Request.URL.Path)
+			s.deps.AppLogger.Health("Health endpoint called with method %s, path %s", c.Request.Method, c.Request.URL.Path)
 			c.Status(http.StatusOK)
 		})
 
@@ -138,6 +142,7 @@ func (s *Server) setupRoutes(tokenExpirationDur time.Duration) {
 			Config:             s.config,
 			TrustedProxies:     s.config.Server.TrustedProxies,
 			TokenExpirationDur: tokenExpirationDur,
+			AppLogger:          s.deps.AppLogger,
 		}
 		group.GET("logger.js", handler.NewLoggerJSHandler(loggerJSDeps))
 
@@ -154,6 +159,7 @@ func (s *Server) setupRoutes(tokenExpirationDur time.Duration) {
 				RuleProcessor:  s.deps.RuleProcessor,
 				TrustedProxies: s.deps.Config.Server.TrustedProxies,
 				Config:         s.deps.Config,
+				AppLogger:      s.deps.AppLogger,
 			}
 
 			// Register Log Handler
@@ -168,7 +174,7 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 	parsedTrustedProxies, err := iputil.ParseCIDRs(s.config.Server.TrustedProxies)
 	if err != nil {
 		// Log critical error during server setup
-		fmt.Printf("[CRITICAL] Failed to parse trusted proxies for rate limiter: %v\n", err)
+		s.deps.AppLogger.Error("Failed to parse trusted proxies for rate limiter: %v", err)
 		// Return a middleware that always denies? Or panic?
 		return func(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error (rate limiter config)"})
@@ -188,7 +194,7 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 
 		if !limiter.Allow() {
 			// Log the rate limit exceedance internally
-			fmt.Printf("[INFO] Rate limit exceeded for IP: %s\n", ip)
+			s.deps.AppLogger.Info("Rate limit exceeded for IP: %s", ip)
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit exceeded"})
 			return
 		}
@@ -200,7 +206,7 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 // Start starts the HTTP server
 func (s *Server) Start() error {
 	addr := fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
-	fmt.Printf("[INFO] Starting server on %s\n", addr)
+	s.deps.AppLogger.Info("Starting server on %s", addr)
 	// Consider using http.Server for more control over shutdown
 	return s.router.Run(addr)
 }

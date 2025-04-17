@@ -42,6 +42,11 @@ type Config struct {
 		Interval int  `yaml:"interval"` // seconds
 	} `yaml:"config_reload"`
 
+	AppLog struct {
+		Level          string `yaml:"level"`
+		ShowHealthLogs bool   `yaml:"show_health_logs"`
+	} `yaml:"app_log"`
+
 	Server struct {
 		Host           string   `yaml:"host"`
 		Port           int      `yaml:"port"`
@@ -132,6 +137,8 @@ func LoadConfig(path string) (*Config, error) {
 	cfg.Server.Mode = "standalone"                 // Default mode
 	cfg.Server.Protocol = "http"                   // Default protocol
 	cfg.Server.JavaScript.GlobalObjectName = "wlp" // Default JS global object name
+	cfg.AppLog.Level = "WARN"                      // Default application log level
+	cfg.AppLog.ShowHealthLogs = false              // Default health logs setting
 
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("error parsing config file '%s': %w", path, err)
@@ -154,6 +161,24 @@ func validateConfig(cfg *Config) error {
 	_, err := ParseDuration(cfg.Security.Token.Expiration)
 	if err != nil {
 		return fmt.Errorf("invalid security.token.expiration: %w", err)
+	}
+
+	// AppLog validation
+	if cfg.AppLog.Level != "" {
+		validLevels := []string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
+		levelValid := false
+		uppercaseLevel := strings.ToUpper(cfg.AppLog.Level)
+
+		for _, level := range validLevels {
+			if uppercaseLevel == level {
+				levelValid = true
+				break
+			}
+		}
+
+		if !levelValid {
+			return fmt.Errorf("app_log.level '%s' is invalid, must be one of: TRACE, DEBUG, INFO, WARN, ERROR, FATAL", cfg.AppLog.Level)
+		}
 	}
 
 	// Server validation

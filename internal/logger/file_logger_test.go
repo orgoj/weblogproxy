@@ -518,6 +518,7 @@ func TestFileLoggerTruncation(t *testing.T) {
 				format:         tt.format,
 				name:           "test-trunc",
 				maxMessageSize: tt.maxSize,
+				appLogger:      GetAppLogger(),
 			}
 
 			err := lgr.Log(tt.record)

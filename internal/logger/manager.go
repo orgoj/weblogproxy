@@ -11,14 +11,16 @@ import (
 
 // Manager handles the lifecycle and access to logger instances.
 type Manager struct {
-	loggers map[string]Logger
-	mu      sync.RWMutex
+	loggers   map[string]Logger
+	mu        sync.RWMutex
+	appLogger *AppLogger
 }
 
 // NewManager creates a new logger manager.
 func NewManager() *Manager {
 	return &Manager{
-		loggers: make(map[string]Logger),
+		loggers:   make(map[string]Logger),
+		appLogger: GetAppLogger(),
 	}
 }
 
@@ -30,7 +32,7 @@ func (m *Manager) InitLoggers(destinations []config.LogDestination) error {
 	// Close existing loggers first if any (e.g., on config reload)
 	for name, lgr := range m.loggers {
 		if err := lgr.Close(); err != nil {
-			fmt.Printf("[WARN] Error closing existing logger '%s' during re-initialization: %v\n", name, err)
+			m.appLogger.Warn("Error closing existing logger '%s' during re-initialization: %v", name, err)
 		}
 	}
 	m.loggers = make(map[string]Logger) // Reset the map
@@ -56,13 +58,13 @@ func (m *Manager) InitLoggers(destinations []config.LogDestination) error {
 		}
 
 		if err != nil {
-			fmt.Printf("[ERROR] Failed to initialize logger destination '%s' (type: %s): %v\n", dest.Name, dest.Type, err)
+			m.appLogger.Error("Failed to initialize logger destination '%s' (type: %s): %v", dest.Name, dest.Type, err)
 			initErrors = append(initErrors, fmt.Errorf("dest '%s': %w", dest.Name, err))
 			continue
 		}
 
 		m.loggers[dest.Name] = lgr
-		fmt.Printf("[INFO] Initialized logger destination '%s' (type: %s)\n", dest.Name, dest.Type)
+		m.appLogger.Info("Initialized logger destination '%s' (type: %s)", dest.Name, dest.Type)
 	}
 
 	if len(initErrors) > 0 {
@@ -100,18 +102,18 @@ func (m *Manager) CloseAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	fmt.Println("Shutting down... Closing loggers.")
+	m.appLogger.Info("Shutting down... Closing loggers.")
 	var wg sync.WaitGroup
 	for name, lgr := range m.loggers {
 		wg.Add(1)
 		go func(name string, lgr Logger) {
 			defer wg.Done()
 			if err := lgr.Close(); err != nil {
-				fmt.Printf("[WARN] Error closing logger '%s': %v\n", name, err)
+				m.appLogger.Warn("Error closing logger '%s': %v", name, err)
 			}
 		}(name, lgr)
 	}
 	wg.Wait()
-	fmt.Println("Loggers closed.")
+	m.appLogger.Info("Loggers closed.")
 	m.loggers = make(map[string]Logger) // Clear the map after closing
 }

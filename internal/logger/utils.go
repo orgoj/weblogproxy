@@ -1,17 +1,20 @@
 package logger
 
-// truncateString truncates a string to a maximum length, adding an ellipsis if truncated.
-// Used by both file and gelf loggers.
+// truncateString truncates a string to the specified maximum length.
+// If the string is longer than maxLength, it will be truncated and "...truncated" will be appended.
 func truncateString(s string, maxLength int) string {
-	if maxLength <= 0 {
-		return ""
-	}
-	const ellipsis = "...truncated"
 	if len(s) <= maxLength {
 		return s
 	}
+
+	// Define ellipsis
+	const ellipsis = "...truncated"
+
+	// Leave space for the ellipsis
 	if maxLength <= len(ellipsis) {
-		return s[:maxLength] // Not enough space for ellipsis, just cut
+		// Not enough space for ellipsis, just cut
+		return s[:maxLength]
 	}
+
 	return s[:maxLength-len(ellipsis)] + ellipsis
 }

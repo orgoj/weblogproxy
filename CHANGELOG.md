@@ -3,13 +3,15 @@
 ## [Unreleased]
 
 ### Added
-- 
+- Introduced `AppLogger` for standardized application-level logging to stdout.
+- Added configuration options `app_log.level` and `app_log.show_health_logs`.
 
 ### Changed
-- 
+- Replaced internal `fmt.Printf` and direct `os.Stderr` writes with `AppLogger` across the codebase.
 
 ### Fixed
-- 
+- Resolved various test failures caused by missing `AppLogger` initialization.
+- Corrected `truncateString` suffix to `...truncated` for compatibility with tests.
 
 
 ## [0.10.2] - 2025-04-17

@@ -7,7 +7,6 @@ import (
 	_ "embed" // Import the embed package
 	"fmt"
 	"html/template"
-	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/orgoj/weblogproxy/internal/config"
 	"github.com/orgoj/weblogproxy/internal/iputil"
+	"github.com/orgoj/weblogproxy/internal/logger"
 	"github.com/orgoj/weblogproxy/internal/rules"
 	"github.com/orgoj/weblogproxy/internal/security"
 	"github.com/orgoj/weblogproxy/internal/validation"
@@ -48,6 +48,7 @@ type LoggerJSHandlerDeps struct {
 	Config             *config.Config // Need config for paths, secrets, headers
 	TrustedProxies     []string       // String CIDRs/IPs
 	TokenExpirationDur time.Duration
+	AppLogger          *logger.AppLogger
 }
 
 // Cached template instance
@@ -66,12 +67,17 @@ func init() {
 
 // NewLoggerJSHandler creates a Gin handler function for the /logger.js endpoint.
 func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
+	// Check if the AppLogger exists
+	if deps.AppLogger == nil {
+		panic("LoggerJSHandler requires a non-nil AppLogger")
+	}
+
 	// Parse trusted proxies ONCE during handler creation
 	var parseErr error
 	parsedProxies, parseErr = iputil.ParseCIDRs(deps.TrustedProxies)
 	if parseErr != nil {
 		// Log critical error during setup
-		slog.Error("Failed to parse trusted_proxies from config", "error", parseErr, "proxies", deps.TrustedProxies)
+		deps.AppLogger.Error("Failed to parse trusted_proxies from config: %v, proxies: %v", parseErr, deps.TrustedProxies)
 		// Return a handler that always fails, indicating setup error
 		return func(ctx *gin.Context) {
 			ctx.String(http.StatusInternalServerError, "Internal server configuration error (trusted_proxies)")
@@ -81,7 +87,7 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 	// Check if the template was parsed successfully during init.
 	if templateParseErr != nil {
 		// This case should ideally be prevented by the panic in init, but keep for safety
-		slog.Error("Logger.js template was not parsed successfully", "error", templateParseErr)
+		deps.AppLogger.Error("Logger.js template was not parsed successfully: %v", templateParseErr)
 		return func(ctx *gin.Context) {
 			ctx.String(http.StatusInternalServerError, "Internal server configuration error (template)")
 		}
@@ -94,30 +100,30 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 
 		// Check for missing or invalid parameters
 		if siteID == "" {
-			slog.Warn("Missing required query parameter: site_id", "remote_ip", ctx.ClientIP(), "path", ctx.Request.URL.Path)
+			deps.AppLogger.Warn("Missing required query parameter: site_id, remote_ip: %s, path: %s", ctx.ClientIP(), ctx.Request.URL.Path)
 			// Return empty JavaScript instead of error
 			executeTemplateAndRespond(ctx, LoggerJsData{
 				GlobalObjectName: deps.Config.Server.JavaScript.GlobalObjectName,
-			})
+			}, deps.AppLogger)
 			return
 		}
 
 		if err := validation.IsValidID(siteID, validation.DefaultMaxInputLength); err != nil {
-			slog.Warn("Invalid site_id", "site_id", siteID, "error", err, "remote_ip", ctx.ClientIP())
+			deps.AppLogger.Warn("Invalid site_id: %s, error: %v, remote_ip: %s", siteID, err, ctx.ClientIP())
 			// Return empty JavaScript instead of error
 			executeTemplateAndRespond(ctx, LoggerJsData{
 				GlobalObjectName: deps.Config.Server.JavaScript.GlobalObjectName,
-			})
+			}, deps.AppLogger)
 			return
 		}
 
 		if gtmID != "" {
 			if err := validation.IsValidID(gtmID, validation.DefaultMaxInputLength); err != nil {
-				slog.Warn("Invalid gtm_id", "gtm_id", gtmID, "error", err, "remote_ip", ctx.ClientIP())
+				deps.AppLogger.Warn("Invalid gtm_id: %s, error: %v, remote_ip: %s", gtmID, err, ctx.ClientIP())
 				// Return empty JavaScript instead of error
 				executeTemplateAndRespond(ctx, LoggerJsData{
 					GlobalObjectName: deps.Config.Server.JavaScript.GlobalObjectName,
-				})
+				}, deps.AppLogger)
 				return
 			}
 		}
@@ -142,7 +148,7 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 			token, err := security.GenerateToken(deps.Config.Security.Token.Secret, siteID, gtmID, deps.TokenExpirationDur)
 			if err != nil {
 				// Log internal error, but continue; token will be empty
-				slog.Error("Failed to generate token", "error", err, "clientIP", clientIP, "siteID", siteID, "gtm_id", gtmID)
+				deps.AppLogger.Error("Failed to generate token: %v, clientIP: %s, siteID: %s, gtm_id: %s", err, clientIP, siteID, gtmID)
 			} else {
 				data.Token = token
 			}
@@ -155,15 +161,15 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 		}
 
 		// Execute the template
-		executeTemplateAndRespond(ctx, data)
+		executeTemplateAndRespond(ctx, data, deps.AppLogger)
 	}
 }
 
 // executeTemplateAndRespond executes the template with provided data and sends the response
-func executeTemplateAndRespond(ctx *gin.Context, data LoggerJsData) {
+func executeTemplateAndRespond(ctx *gin.Context, data LoggerJsData, appLogger *logger.AppLogger) {
 	var buf bytes.Buffer
 	if err := loggerJSTemplate.Execute(&buf, data); err != nil {
-		slog.Error("Failed to execute logger.js template", "error", err)
+		appLogger.Error("Failed to execute logger.js template: %v", err)
 		ctx.String(http.StatusInternalServerError, "Internal Server Error")
 		return
 	}

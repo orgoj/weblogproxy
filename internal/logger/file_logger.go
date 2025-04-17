@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -25,10 +24,13 @@ type FileLogger struct {
 	format         string         // "json" or "text"
 	name           string         // Added to store logger name
 	maxMessageSize int            // Max size in bytes, 0 means unlimited
+	appLogger      *AppLogger     // For internal logging
 }
 
 // NewFileLogger creates a new FileLogger instance.
 func NewFileLogger(cfg config.LogDestination) (*FileLogger, error) {
+	appLogger := GetAppLogger()
+
 	if cfg.Path == "" {
 		return nil, fmt.Errorf("file logger requires a path")
 	}
@@ -42,58 +44,33 @@ func NewFileLogger(cfg config.LogDestination) (*FileLogger, error) {
 	var writer io.WriteCloser
 	var maxSizeMB int
 	var maxAgeDays int
-	var err error
 
 	// Parse rotation config if provided
 	if cfg.Rotation.MaxSize != "" {
-		// The max_size value is always in MB (e.g. "1", "10", "100")
-		// Units are not supported - value is always considered as MB
-		maxSizeMB, err = strconv.Atoi(cfg.Rotation.MaxSize)
+		sizeBytes, err := config.ParseSize(cfg.Rotation.MaxSize)
 		if err != nil {
-			// For backward compatibility, try to parse with units
-			var sizeBytes int64
-			sizeBytes, err = config.ParseSize(cfg.Rotation.MaxSize)
-			if err != nil {
-				return nil, fmt.Errorf("invalid rotation.max_size '%s' for destination '%s': %w", cfg.Rotation.MaxSize, cfg.Name, err)
-			}
-
-			// Convert to MB for lumberjack
-			maxSizeMB = int(sizeBytes / (1024 * 1024))
-			if sizeBytes > 0 && maxSizeMB == 0 {
-				// Minimum value is 1MB (lumberjack limitation)
-				fmt.Printf("[WARN] Destination '%s': rotation.max_size value is too small (%d bytes). Using minimum 1MB.\n", cfg.Name, sizeBytes)
-				maxSizeMB = 1
-			}
-
-			fmt.Printf("[WARN] Destination '%s': rotation.max_size with units is deprecated. Please use MB value without units.\n", cfg.Name)
+			return nil, fmt.Errorf("invalid rotation.max_size: %w", err)
 		}
-
-		if maxSizeMB <= 0 {
-			fmt.Printf("[WARN] Destination '%s': rotation.max_size '%s' parsed to 0 or negative value, disabling size-based rotation.\n", cfg.Name, cfg.Rotation.MaxSize)
-			maxSizeMB = 0
+		// Convert bytes to MB, ensuring at least 1MB (lumberjack requires positive values)
+		maxSizeMB = int(sizeBytes / 1024 / 1024)
+		if maxSizeMB < 1 && sizeBytes > 0 {
+			maxSizeMB = 1 // Minimum 1MB for any positive size
 		}
 	}
 
 	if cfg.Rotation.MaxAge != "" {
-		var ageDuration time.Duration
-		ageDuration, err = config.ParseDuration(cfg.Rotation.MaxAge)
+		duration, err := config.ParseDuration(cfg.Rotation.MaxAge)
 		if err != nil {
-			return nil, fmt.Errorf("invalid rotation.max_age '%s' for destination '%s': %w", cfg.Rotation.MaxAge, cfg.Name, err)
+			return nil, fmt.Errorf("invalid rotation.max_age: %w", err)
 		}
-		// Convert duration to days for lumberjack
-		maxAgeDays = int(ageDuration.Hours() / 24)
-		if maxAgeDays <= 0 && ageDuration > 0 {
-			maxAgeDays = 1
-			fmt.Printf("[WARN] Destination '%s': rotation.max_age '%s' is less than 1 day, using 1 day.\n", cfg.Name, cfg.Rotation.MaxAge)
-		} else if maxAgeDays == 0 && ageDuration == 0 {
-			fmt.Printf("[WARN] Destination '%s': rotation.max_age '%s' parsed to 0 duration, disabling age-based rotation.\n", cfg.Name, cfg.Rotation.MaxAge)
-		}
+		// Convert duration to days, flooring to integer
+		maxAgeDays = int(duration.Hours() / 24)
 	}
 
 	rotationConfigured := maxSizeMB > 0 || maxAgeDays > 0 || cfg.Rotation.MaxBackups > 0
 
 	if rotationConfigured {
-		fmt.Printf("[INFO] Configuring file rotation for '%s': MaxSize=%dMB, MaxAge=%ddays, MaxBackups=%d, Compress=%t\n",
+		appLogger.Info("Configuring file rotation for '%s': MaxSize=%dMB, MaxAge=%ddays, MaxBackups=%d, Compress=%t",
 			cfg.Path, maxSizeMB, maxAgeDays, cfg.Rotation.MaxBackups, cfg.Rotation.Compress)
 		writer = &lumberjack.Logger{
 			Filename:   cfg.Path,
@@ -107,7 +84,7 @@ func NewFileLogger(cfg config.LogDestination) (*FileLogger, error) {
 		// Otherwise, use a standard file
 		file, err := os.OpenFile(cfg.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640) // #nosec G302 -- Permissions set to 0640 to allow reading by log collectors in the same group.
 		if err != nil {
-			log.Printf("ERROR: Failed to open log file %s: %v", cfg.Path, err)
+			appLogger.Error("Failed to open log file %s: %v", cfg.Path, err)
 			return nil, fmt.Errorf("failed to open log file %s: %w", cfg.Path, err)
 		}
 		writer = file
@@ -124,6 +101,7 @@ func NewFileLogger(cfg config.LogDestination) (*FileLogger, error) {
 		format:         cfg.Format,
 		name:           cfg.Name, // Store the name
 		maxMessageSize: maxSize,
+		appLogger:      appLogger,
 	}, nil
 }
 
@@ -146,7 +124,7 @@ func (l *FileLogger) Log(record map[string]interface{}) error {
 		}
 		// Check size *before* appending newline for JSON
 		if l.maxMessageSize > 0 && len(line) > l.maxMessageSize {
-			fmt.Printf("[WARN] Log message for destination '%s' truncated (JSON format). Size: %d > Limit: %d\n", l.name, len(line), l.maxMessageSize)
+			l.appLogger.Warn("Log message for destination '%s' truncated (JSON format). Size: %d > Limit: %d", l.name, len(line), l.maxMessageSize)
 			line = createTruncatedJSONRecord(record, l.maxMessageSize)
 		}
 		line = append(line, '\n') // Append newline for JSON Lines format
@@ -154,7 +132,7 @@ func (l *FileLogger) Log(record map[string]interface{}) error {
 		line = l.formatText(record)
 		// Check size *before* appending newline for text
 		if l.maxMessageSize > 0 && len(line) > l.maxMessageSize {
-			fmt.Printf("[WARN] Log message for destination '%s' truncated (Text format). Size: %d > Limit: %d\n", l.name, len(line), l.maxMessageSize)
+			l.appLogger.Warn("Log message for destination '%s' truncated (Text format). Size: %d > Limit: %d", l.name, len(line), l.maxMessageSize)
 			line = []byte(truncateString(string(line), l.maxMessageSize))
 		}
 		line = append(line, '\n')

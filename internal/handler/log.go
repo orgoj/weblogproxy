@@ -3,7 +3,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -32,6 +31,7 @@ type LogHandlerDependencies struct {
 	RuleProcessor  *rules.RuleProcessor
 	TrustedProxies []string
 	Config         *config.Config
+	AppLogger      *logger.AppLogger
 }
 
 // NewLogHandler creates a Gin handler function for the /log endpoint
@@ -48,10 +48,13 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 	if deps.Config == nil {
 		panic("LogHandler requires a non-nil Config")
 	}
+	if deps.AppLogger == nil {
+		panic("LogHandler requires a non-nil AppLogger")
+	}
 
 	parsedTrustedProxies, err := iputil.ParseCIDRs(deps.TrustedProxies)
 	if err != nil {
-		fmt.Printf("[CRITICAL] Failed to parse trusted proxies for log handler: %v\n", err)
+		deps.AppLogger.Error("Failed to parse trusted proxies for log handler: %v", err)
 	}
 
 	return func(ctx *gin.Context) {
@@ -67,7 +70,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		if err := ctx.ShouldBindJSON(&reqBody); err != nil {
 			// Log the binding error internally but return OK to client
 			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
-			fmt.Printf("[WARN] Log Handler: JSON binding error for IP %s: %v\n", clientIPForLog, err)
+			deps.AppLogger.Warn("Log Handler: JSON binding error for IP %s: %v", clientIPForLog, err)
 			// Maybe truncate the body before logging if it was too large?
 			// For now, just log the error.
 			return // StatusOK is already set
@@ -77,14 +80,14 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		// Validate SiteID and GtmID format
 		if err := validation.IsValidID(reqBody.SiteID, validation.DefaultMaxInputLength); err != nil {
 			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
-			fmt.Printf("[WARN] Log Handler: Invalid site_id '%s' from IP %s: %v\n", reqBody.SiteID, clientIPForLog, err)
+			deps.AppLogger.Warn("Log Handler: Invalid site_id '%s' from IP %s: %v", reqBody.SiteID, clientIPForLog, err)
 			// Do not process further, but return OK
 			return
 		}
 		if reqBody.GtmID != "" {
 			if err := validation.IsValidID(reqBody.GtmID, validation.DefaultMaxInputLength); err != nil {
 				clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
-				fmt.Printf("[WARN] Log Handler: Invalid gtm_id '%s' from IP %s: %v\n", reqBody.GtmID, clientIPForLog, err)
+				deps.AppLogger.Warn("Log Handler: Invalid gtm_id '%s' from IP %s: %v", reqBody.GtmID, clientIPForLog, err)
 				// Do not process further, but return OK
 				return
 			}
@@ -100,7 +103,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		)
 		if err != nil {
 			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
-			fmt.Printf("[WARN] Log Handler: Data sanitization error for IP %s (SiteID: %s): %v\n", clientIPForLog, reqBody.SiteID, err)
+			deps.AppLogger.Warn("Log Handler: Data sanitization error for IP %s (SiteID: %s): %v", clientIPForLog, reqBody.SiteID, err)
 			// Decide if we still want to log the (partially?) sanitized data or skip.
 			// For now, let's skip if sanitization fails completely.
 			if sanitizedData == nil {
@@ -116,13 +119,13 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		valid, err := security.ValidateToken(deps.TokenSecret, reqBody.SiteID, reqBody.GtmID, reqBody.Token)
 		if err != nil {
 			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
-			fmt.Printf("[WARN] Log Handler: Token validation error for IP %s, SiteID '%s': %v\n", clientIPForLog, reqBody.SiteID, err)
+			deps.AppLogger.Warn("Log Handler: Token validation error for IP %s, SiteID '%s': %v", clientIPForLog, reqBody.SiteID, err)
 			ctx.Header("X-Log-Status", "failure")
 			return // Return OK, but log the error
 		}
 		if !valid {
 			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
-			fmt.Printf("[WARN] Log Handler: Invalid token received from IP %s for SiteID '%s'\n", clientIPForLog, reqBody.SiteID)
+			deps.AppLogger.Warn("Log Handler: Invalid token received from IP %s for SiteID '%s'", clientIPForLog, reqBody.SiteID)
 			ctx.Header("X-Log-Status", "failure")
 			return // Return OK
 		}
@@ -153,14 +156,14 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 				if enabledMap[name] {
 					filteredDestinations = append(filteredDestinations, name)
 				} else {
-					fmt.Printf("[WARN] Log Handler: Rule specified destination '%s' which is not enabled or configured.\n", name)
+					deps.AppLogger.Warn("Log Handler: Rule specified destination '%s' which is not enabled or configured.", name)
 				}
 			}
 			targetDestinations = filteredDestinations
 		}
 
 		if len(targetDestinations) == 0 {
-			fmt.Println("[WARN] Log Handler: No enabled log destinations found after rule processing.")
+			deps.AppLogger.Warn("Log Handler: No enabled log destinations found after rule processing.")
 			return
 		}
 
@@ -174,7 +177,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		for _, destName := range targetDestinations {
 			loggerInstance := deps.LoggerManager.GetLogger(destName)
 			if loggerInstance == nil {
-				fmt.Printf("[ERROR] Log Handler: Logger instance '%s' not found or not initialized for SiteID '%s'\n", destName, reqBody.SiteID)
+				deps.AppLogger.Error("Log Handler: Logger instance '%s' not found or not initialized for SiteID '%s'", destName, reqBody.SiteID)
 				continue
 			}
 
@@ -196,7 +199,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 			if destConfig != nil {
 				destAdds = destConfig.AddLogData
 			} else {
-				fmt.Printf("[WARN] Log Handler: Destination config '%s' not found for SiteID '%s' after getting logger instance\n", destName, reqBody.SiteID)
+				deps.AppLogger.Warn("Log Handler: Destination config '%s' not found for SiteID '%s' after getting logger instance", destName, reqBody.SiteID)
 			}
 
 			// Use AccumulatedAddLogData from rules result
@@ -208,7 +211,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 				ctx.Request,
 			)
 			if err != nil {
-				fmt.Printf("[ERROR] Log Handler: Failed to enrich/merge data for destination '%s', SiteID '%s': %v\n", destName, reqBody.SiteID, err)
+				deps.AppLogger.Error("Log Handler: Failed to enrich/merge data for destination '%s', SiteID '%s': %v", destName, reqBody.SiteID, err)
 				continue
 			}
 
@@ -216,16 +219,16 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 			if limit > 0 {
 				truncated, err := truncate.TruncateMapIfNeeded(&finalRecord, limit)
 				if err != nil {
-					fmt.Printf("[ERROR] Log Handler: Failed to truncate log data for dest '%s', SiteID '%s': %v\n", destName, reqBody.SiteID, err)
+					deps.AppLogger.Error("Log Handler: Failed to truncate log data for dest '%s', SiteID '%s': %v", destName, reqBody.SiteID, err)
 				}
 				if truncated && err == nil {
-					fmt.Printf("[WARN] Log Handler: Log record truncated for dest '%s', SiteID '%s' due to size limit (%d bytes).\n", destName, reqBody.SiteID, limit)
+					deps.AppLogger.Warn("Log Handler: Log record truncated for dest '%s', SiteID '%s' due to size limit (%d bytes).", destName, reqBody.SiteID, limit)
 				}
 			}
 
 			// 6. Send to Logger
 			if err := loggerInstance.Log(finalRecord); err != nil {
-				fmt.Printf("[ERROR] Log Handler: Failed to write log to destination '%s' for SiteID '%s': %v\n", destName, reqBody.SiteID, err)
+				deps.AppLogger.Error("Log Handler: Failed to write log to destination '%s' for SiteID '%s': %v", destName, reqBody.SiteID, err)
 				continue
 			}
 
