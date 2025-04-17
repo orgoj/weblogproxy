@@ -1,8 +1,11 @@
-# TODO List (ALWAYS READ BEFORE STARTING WORK: @todo_rules.mdc)
+# TODO List
+---
+- **IMPORTANT**: ALWAYS READ RULES @todo_rules.mdc BEFORE STARTING WORK
+---
 
-## App logger
+## HIGH PRIORITY
 
-## Small enhancements
+- [ ] Implement rate limiting (e.g., using `golang.org/x/time/rate`) (LATER handled by reverse proxy)
 
 ## E2E Tests
 
@@ -15,11 +18,7 @@
 
 ## Maybe we'll do
 
-- [~] Extend documentation in `README.md` (ONLY AT THE END WHEN EVERYTHING IS READY)
-- [~] Upload to Github
-- [~] Upload to docker hub, or maybe github to your docker hub
 - [-] Optimize system resource consumption (not started). 
-- [ ] Implement rate limiting (e.g., using `golang.org/x/time/rate`) (LATER handled by reverse proxy)
 - [?] Optional javascript template in condition
 - [?] Add basic load tests.
 - [?] Error log to file instead of stderr, not a problem for docker now, could be log_destination.name=internal later, which would support rotation
