@@ -182,6 +182,13 @@ func (s *Server) setupRoutes(tokenExpirationDur time.Duration) {
 			logGroup.POST("", handler.NewLogHandler(logDeps)) // POST /log
 		}
 	}
+
+	// Nastavím NoRoute handler
+	s.router.NoRoute(func(c *gin.Context) {
+		c.Header("Cache-Control", s.config.Server.UnknownRoute.CacheControl)
+		c.Status(s.config.Server.UnknownRoute.Code)
+		_, _ = c.Writer.Write([]byte(""))
+	})
 }
 
 // rateLimitMiddleware creates a Gin middleware for rate limiting based on IP.

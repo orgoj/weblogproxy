@@ -107,6 +107,9 @@ server:
   health_allowed_ips:
     - "192.168.0.0/16"  # Optional list of IP or CIDR strings allowed to access the /health endpoint (default: allow all)
   # Add other server settings as needed (CORS, headers, etc.)
+  unknown_route:
+    code: 200  # HTTP status code for unknown routes (default: 200)
+    cache_control: "public, max-age=3600"  # Cache header for unknown routes (default: 1 hour)
 ```
 
 ## API Endpoints
@@ -420,3 +423,22 @@ Estimated People Required (organic) 2.74
 Processed 348353 bytes, 0.348 megabytes (SI)
 ───────────────────────────────────────────────────────────────────────────────
 ```
+
+## Google Tag Manager Integration Example
+
+To use WebLogProxy with Google Tag Manager, you can add a Custom HTML tag with the following code:
+
+```html
+<!-- WebLogProxy GTM Tag Example -->
+<script src="https://yourdomain.com/logger.js?site_id=example.com"></script>
+<script>
+  window.wlp = window.wlp || {};
+  window.wlp.log = window.wlp.log || function(){};
+  window.wlp.log({
+    event: 'gtm_event',
+    gtm: true
+  });
+</script>
+```
+
+You can also use the provided template: [gtm_tag_template.html](./gtm_tag_template.html)

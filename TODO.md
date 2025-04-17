@@ -4,9 +4,6 @@
 
 ## Small enhancements
 
-- [ ] configurable error http return code for unknown route, default 200, always return blank body, and cache header for 1 hour
-- [ ] Google Tag Manager Tag code example or template
-
 ## E2E Tests
 
 - [-] Test output file formats (JSON/Text) by reading log files after E2E test.

@@ -69,6 +69,10 @@ type Config struct {
 		JavaScript struct {
 			GlobalObjectName string `yaml:"global_object_name"` // Name of the global JS object (default: wlp)
 		} `yaml:"javascript"`
+		UnknownRoute struct {
+			Code         int    `yaml:"code"`
+			CacheControl string `yaml:"cache_control"`
+		} `yaml:"unknown_route"`
 	} `yaml:"server"`
 
 	Security struct {
@@ -140,6 +144,8 @@ func LoadConfig(path string) (*Config, error) {
 	cfg.Server.JavaScript.GlobalObjectName = "wlp" // Default JS global object name
 	cfg.AppLog.Level = "WARN"                      // Default application log level
 	cfg.AppLog.ShowHealthLogs = false              // Default health logs setting
+	cfg.Server.UnknownRoute.Code = 200
+	cfg.Server.UnknownRoute.CacheControl = "public, max-age=3600"
 
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("error parsing config file '%s': %w", path, err)
@@ -316,6 +322,13 @@ func validateConfig(cfg *Config) error {
 				return fmt.Errorf("%s: specified log_destination '%s' not found in top-level log_destinations", rulePath, destName)
 			}
 		}
+	}
+
+	if cfg.Server.UnknownRoute.Code < 100 || cfg.Server.UnknownRoute.Code > 599 {
+		return fmt.Errorf("server.unknown_route.code must be a valid HTTP status code (100-599), got %d", cfg.Server.UnknownRoute.Code)
+	}
+	if cfg.Server.UnknownRoute.CacheControl == "" {
+		return errors.New("server.unknown_route.cache_control cannot be empty")
 	}
 
 	return nil

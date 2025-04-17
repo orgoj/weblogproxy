@@ -394,10 +394,18 @@ func TestRuleProcessor_Process(t *testing.T) {
 					JavaScript struct {
 						GlobalObjectName string `yaml:"global_object_name"`
 					} `yaml:"javascript"`
+					UnknownRoute struct {
+						Code         int    `yaml:"code"`
+						CacheControl string `yaml:"cache_control"`
+					} `yaml:"unknown_route"`
 				}{
 					TrustedProxies: tt.trustedProxies,
 					Mode:           "embedded",
 					Protocol:       "http",
+					UnknownRoute: struct {
+						Code         int    `yaml:"code"`
+						CacheControl string `yaml:"cache_control"`
+					}{Code: 200, CacheControl: "public, max-age=3600"},
 				},
 			})
 			if tt.expectError {

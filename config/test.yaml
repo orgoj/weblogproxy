@@ -21,6 +21,9 @@ server:
     max_body_size: 20480 # 20KB
     rate_limit: 5000 # High limit for rotation testing
   trusted_proxies: ["127.0.0.1"] # Trust localhost for tests with X-Forwarded-For
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 
 security:
   token:

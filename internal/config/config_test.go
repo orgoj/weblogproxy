@@ -39,6 +39,8 @@ func TestLoadConfig_Valid(t *testing.T) {
 	assert.Equal(t, 20480, cfg.Server.RequestLimits.MaxBodySize)
 	assert.Equal(t, 5000, cfg.Server.RequestLimits.RateLimit)
 	assert.Equal(t, []string{"127.0.0.1"}, cfg.Server.TrustedProxies)
+	assert.Equal(t, 200, cfg.Server.UnknownRoute.Code)
+	assert.Equal(t, "public, max-age=3600", cfg.Server.UnknownRoute.CacheControl)
 
 	// Security
 	assert.Equal(t, "super-secret-test-key-!@#$", cfg.Security.Token.Secret)
@@ -132,6 +134,9 @@ func TestLoadConfig_InvalidCases(t *testing.T) {
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: ""
@@ -145,6 +150,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test_secret"
@@ -158,6 +166,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test_secret"
@@ -170,6 +181,9 @@ security:
 			config: `
 server:
   mode: "invalid_mode"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test_secret"
@@ -183,6 +197,9 @@ security:
 server:
   mode: "embedded"
   path_prefix: ""
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -196,6 +213,9 @@ security:
 server:
   mode: "standalone"
   domain: ""
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -209,6 +229,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -231,6 +254,9 @@ log_destinations:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -249,6 +275,9 @@ log_destinations:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -265,6 +294,9 @@ log_destinations:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -283,6 +315,9 @@ log_destinations:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -301,6 +336,9 @@ log_destinations:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -319,6 +357,9 @@ log_destinations:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -338,6 +379,9 @@ log_destinations:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -357,6 +401,9 @@ log_destinations:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -377,6 +424,9 @@ log_config:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -397,6 +447,9 @@ log_config:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -417,6 +470,9 @@ log_config:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -439,6 +495,9 @@ log_config:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -459,6 +518,9 @@ log_destinations:
 server:
   mode: "embedded"
   path_prefix: ""
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -472,6 +534,9 @@ security:
 server:
   mode: "standalone"
   domain: ""
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -584,6 +649,9 @@ func TestLoadConfig_Headers_And_FieldRemoval(t *testing.T) {
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -604,6 +672,9 @@ log_config:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 security:
   token:
     secret: "test"
@@ -649,6 +720,9 @@ func TestValidateConfig_CORS(t *testing.T) {
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
   cors:
     enabled: true
     allowed_origins:
@@ -668,6 +742,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
   cors:
     enabled: false
 security:
@@ -683,6 +760,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
   cors:
     enabled: true
     allowed_origins: []
@@ -701,6 +781,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
   cors:
     enabled: true
     allowed_origins:
@@ -720,6 +803,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
   cors:
     enabled: true
     allowed_origins:
@@ -738,6 +824,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
   cors:
     enabled: true
     allowed_origins:
@@ -757,6 +846,9 @@ security:
 server:
   mode: "standalone"
   domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
   cors:
     enabled: false
     allowed_origins: []

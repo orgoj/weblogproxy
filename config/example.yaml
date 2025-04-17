@@ -24,6 +24,9 @@ server:
   trusted_proxies:      # List of trusted reverse proxy IPs/CIDRs
     - "192.168.0.0/16"  # Allows X-Forwarded-For from local network
     - "10.0.0.1"        # Specific trusted proxy IP
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
 
 security:
   token:
