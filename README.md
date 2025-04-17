@@ -107,10 +107,16 @@ server:
   health_allowed_ips:
     - "192.168.0.0/16"  # Optional list of IP or CIDR strings allowed to access the /health endpoint (default: allow all)
   # Add other server settings as needed (CORS, headers, etc.)
+  request_limits:
+    rate_limit: 1000  # Max requests per minute per IP to /log (0 = unlimited)
+    max_body_size: 102400  # Max request body size in bytes (100KB)
   unknown_route:
     code: 200  # HTTP status code for unknown routes (default: 200)
     cache_control: "public, max-age=3600"  # Cache header for unknown routes (default: 1 hour)
 ```
+
+- `rate_limit` sets the maximum number of requests per minute per client IP to the `/log` endpoint. If the limit is exceeded, the server responds with HTTP 429 Too Many Requests and a JSON error message. Set to `0` to disable rate limiting.
+- `max_body_size` sets the maximum allowed size of the request body in bytes. Requests exceeding this size are rejected with HTTP 413.
 
 ## API Endpoints
 

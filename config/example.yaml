@@ -20,7 +20,7 @@ server:
     Cache-Control: "public, max-age=3600" # 1 hour cache
   request_limits:       # Moved from security
     max_body_size: 102400 # bytes (100KB)
-    rate_limit: 1000      # requests per minute per IP
+    rate_limit: 1000      # requests per minute per IP to /log (0 = unlimited, disables rate limiting)
   trusted_proxies:      # List of trusted reverse proxy IPs/CIDRs
     - "192.168.0.0/16"  # Allows X-Forwarded-For from local network
     - "10.0.0.1"        # Specific trusted proxy IP

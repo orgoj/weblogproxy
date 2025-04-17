@@ -5,8 +5,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] Implement rate limiting (e.g., using `golang.org/x/time/rate`) (LATER handled by reverse proxy)
-
 ## E2E Tests
 
 - [-] Test output file formats (JSON/Text) by reading log files after E2E test.
