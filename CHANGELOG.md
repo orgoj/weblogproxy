@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- Added configuration option `server.health_allowed_ips` to restrict health endpoints based on CIDR ranges with middleware and tests
 - Introduced `AppLogger` for standardized application-level logging to stdout.
 - Added configuration options `app_log.level` and `app_log.show_health_logs`.
 

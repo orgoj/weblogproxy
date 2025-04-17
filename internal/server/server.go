@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"sync"
@@ -31,11 +32,13 @@ type Server struct {
 	loggerManager *logger.Manager
 	ruleProcessor *rules.RuleProcessor
 	// Rate limiting specific
-	limiters   map[string]*rate.Limiter
-	limiterMu  sync.Mutex
-	rateLimit  rate.Limit
-	burstLimit int
-	deps       Dependencies
+	limiters             map[string]*rate.Limiter
+	limiterMu            sync.Mutex
+	rateLimit            rate.Limit
+	burstLimit           int
+	trustedProxiesParsed []*net.IPNet
+	healthAllowed        []*net.IPNet
+	deps                 Dependencies
 }
 
 // NewServer creates a new server instance with its dependencies.
@@ -79,6 +82,19 @@ func NewServer(deps Dependencies) *Server {
 		limiters:      make(map[string]*rate.Limiter),
 		deps:          deps,
 	}
+
+	// Parse trusted_proxies and exit on invalid config
+	parsedTrusted, err := iputil.ParseCIDRs(deps.Config.Server.TrustedProxies)
+	if err != nil {
+		panic(fmt.Sprintf("server: invalid server.trusted_proxies: %v", err))
+	}
+	server.trustedProxiesParsed = parsedTrusted
+	// Parse health_allowed_ips and exit on invalid config
+	parsedHealthAllowed, err := iputil.ParseCIDRs(deps.Config.Server.HealthAllowedIPs)
+	if err != nil {
+		panic(fmt.Sprintf("server: invalid server.health_allowed_ips: %v", err))
+	}
+	server.healthAllowed = parsedHealthAllowed
 
 	// Initialize rate limiter settings
 	if deps.Config.Server.RequestLimits.RateLimit > 0 {
@@ -124,11 +140,11 @@ func (s *Server) setupRoutes(tokenExpirationDur time.Duration) {
 	group := s.router.Group(basePath)
 	{
 		// Health check endpoint (no rate limit)
-		group.GET("health", func(c *gin.Context) {
+		group.GET("health", s.healthIPMiddleware(), func(c *gin.Context) {
 			s.deps.AppLogger.Health("Health endpoint called with method %s, path %s", c.Request.Method, c.Request.URL.Path)
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
-		group.HEAD("health", func(c *gin.Context) {
+		group.HEAD("health", s.healthIPMiddleware(), func(c *gin.Context) {
 			s.deps.AppLogger.Health("Health endpoint called with method %s, path %s", c.Request.Method, c.Request.URL.Path)
 			c.Status(http.StatusOK)
 		})
@@ -199,6 +215,24 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		c.Next()
+	}
+}
+
+// healthIPMiddleware checks client IP against allowed CIDRs for health endpoints
+func (s *Server) healthIPMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ipStr := iputil.GetClientIP(c.Request, s.trustedProxiesParsed)
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			s.deps.AppLogger.Error("Failed to parse client IP for health check: %s", ipStr)
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+			return
+		}
+		if len(s.healthAllowed) > 0 && !iputil.IsIPInAnyCIDR(ip, s.healthAllowed) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+			return
+		}
 		c.Next()
 	}
 }

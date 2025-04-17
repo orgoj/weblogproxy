@@ -48,14 +48,15 @@ type Config struct {
 	} `yaml:"app_log"`
 
 	Server struct {
-		Host           string   `yaml:"host"`
-		Port           int      `yaml:"port"`
-		Mode           string   `yaml:"mode"`     // standalone or embedded
-		Protocol       string   `yaml:"protocol"` // http or https, used for generating URLs
-		Domain         string   `yaml:"domain"`   // Full domain name for standalone mode
-		PathPrefix     string   `yaml:"path_prefix"`
-		TrustedProxies []string `yaml:"trusted_proxies"`
-		CORS           struct {
+		Host             string   `yaml:"host"`
+		Port             int      `yaml:"port"`
+		Mode             string   `yaml:"mode"`     // standalone or embedded
+		Protocol         string   `yaml:"protocol"` // http or https, used for generating URLs
+		Domain           string   `yaml:"domain"`   // Full domain name for standalone mode
+		PathPrefix       string   `yaml:"path_prefix"`
+		TrustedProxies   []string `yaml:"trusted_proxies"`
+		HealthAllowedIPs []string `yaml:"health_allowed_ips"`
+		CORS             struct {
 			Enabled        bool     `yaml:"enabled"`
 			AllowedOrigins []string `yaml:"allowed_origins"`
 			MaxAge         int      `yaml:"max_age"` // seconds

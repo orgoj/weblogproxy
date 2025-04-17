@@ -373,14 +373,15 @@ func TestRuleProcessor_Process(t *testing.T) {
 			p, err := NewRuleProcessor(&config.Config{
 				LogConfig: tt.logConfig,
 				Server: struct {
-					Host           string   `yaml:"host"`
-					Port           int      `yaml:"port"`
-					Mode           string   `yaml:"mode"`
-					Protocol       string   `yaml:"protocol"`
-					Domain         string   `yaml:"domain"`
-					PathPrefix     string   `yaml:"path_prefix"`
-					TrustedProxies []string `yaml:"trusted_proxies"`
-					CORS           struct {
+					Host             string   `yaml:"host"`
+					Port             int      `yaml:"port"`
+					Mode             string   `yaml:"mode"`
+					Protocol         string   `yaml:"protocol"`
+					Domain           string   `yaml:"domain"`
+					PathPrefix       string   `yaml:"path_prefix"`
+					TrustedProxies   []string `yaml:"trusted_proxies"`
+					HealthAllowedIPs []string `yaml:"health_allowed_ips"`
+					CORS             struct {
 						Enabled        bool     `yaml:"enabled"`
 						AllowedOrigins []string `yaml:"allowed_origins"`
 						MaxAge         int      `yaml:"max_age"`
