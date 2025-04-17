@@ -1,0 +1,2 @@
+*.tmpl.js linguist-language=GoTemplate
+**/templates/*.js linguist-generated 

@@ -1,7 +1,9 @@
 name: "WebLogProxy CodeQL config"
 
 paths-ignore:
-  - 'internal/handler/templates/logger.tmpl.js'  # Template file fails to analyze
+  - '**/templates/**'  # Ignores all template files directory
+  - '**/*.tmpl.js'     # Additional pattern for template files
+  - '**/*.test.js'     # Ignore test files
 
 # Use default security queries
 queries:
