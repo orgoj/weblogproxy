@@ -136,3 +136,16 @@ depends = ["gosec", "govulncheck"]
 description = "Run all CI checks (lint, test, security)"
 # Assuming CI should run security checks as well
 depends = ["lint", "test", "security-check"]
+
+[tasks.stats-git]
+description = "Show git stats, output to out/ directory"
+run = "docker run --rm -v $(pwd):/repo:ro -v $(pwd)/out:/out --user $(id -u):$(id -g) jk4ger/gitstats:latest"
+
+[tasks.stats-git-open]
+description = "Open git stats in browser"
+run = "xdg-open out/index.html"
+depends = ["stats-git"]
+
+[tasks.stats-scc]
+description = "Show code stats"
+run = "docker run --rm -v $(pwd):/pwd:ro ghcr.io/boyter/scc:master scc /pwd"

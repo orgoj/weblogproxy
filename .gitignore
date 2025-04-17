@@ -39,3 +39,4 @@ Thumbs.db
 # Air hot reload temporary files
 tmp/
 *.bak
+/out
