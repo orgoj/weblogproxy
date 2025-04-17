@@ -21,31 +21,23 @@ WebLogProxy is a flexible and secure web logging proxy that allows you to collec
 ### Using Docker
 
 ```bash
-# Clone the repository
-git clone https://github.com/orgoj/weblogproxy.git
-cd weblogproxy
+# Get compose file and edit it
+curl -o docker-compose.yml https://raw.githubusercontent.com/orgoj/weblogproxy/main/docker-compose.yml
 
-# Copy and edit the configuration file
-cp config/example.yaml config/config.yaml
-# Edit config/config.yaml to your needs
+# Create directories
+mkdir -p config log
 
-# Build and run with Docker
-docker-compose up -d
+# Get configuration file and edit it
+curl -o config/config.yaml https://raw.githubusercontent.com/orgoj/weblogproxy/main/config/example.yaml
+
+# Run with Docker Compose
+docker compose up -d
 ```
 
 ### Docker Usage with Custom UID/GID
 
-By default, the Docker container runs with a non-root user with UID/GID 1000. You can customize this by setting environment variables:
+By default, the Docker container runs with a non-root user with UID/GID 1000. You can customize this by setting environment variables in the docker-compose.yml file.
 
-```bash
-# Run with specific UID/GID (replace 1001/1001 with your values)
-docker run -p 8080:8080 -e PUID=1001 -e PGID=1001 weblogproxy:latest
-
-# Run as the current user
-docker run -p 8080:8080 -e PUID=$(id -u) -e PGID=$(id -g) weblogproxy:latest
-```
-
-#### Using docker-compose (add to docker-compose.yml)
 ```yaml
 environment:
   - PUID=1001
@@ -154,6 +146,35 @@ To use WebLogProxy in your HTML, include the following script and call the `wind
 ```
 
 In this example, the `logger.js` script is included, and the `window.wlp.log` function is called to log an event. The event data is sent to the WebLogProxy server.
+
+## Google Tag Manager Integration Example
+
+To use WebLogProxy with Google Tag Manager, you can add a Custom HTML tag with the following code:
+
+### GTM WebLogProxy - Load Logger
+```html
+<script>
+(function(){
+  var domain=window.location.hostname.replace(/^www\./i,'');
+  var script=document.createElement('script');
+  script.src='https://wlp.yourdomain.com/logger.js?site_id=' +encodeURIComponent(domain)+'&gtm_id='+encodeURIComponent({{Container ID}});
+  document.head.appendChild(script);
+})();  
+</script>
+```
+### GTM WebLogProxy - Log Event
+```html
+<script>
+  window.wlp.log({
+    event: 'gtm_event',
+    dataLayer: dataLayer[dataLayer.length-1],
+    gtm: true
+  });
+</script>
+```
+
+You can also use the provided template: [gtm_tag_template.html](./gtm_tag_template.html)
+
 
 ## Log File Format
 
@@ -429,22 +450,3 @@ Estimated People Required (organic) 2.74
 Processed 348353 bytes, 0.348 megabytes (SI)
 ───────────────────────────────────────────────────────────────────────────────
 ```
-
-## Google Tag Manager Integration Example
-
-To use WebLogProxy with Google Tag Manager, you can add a Custom HTML tag with the following code:
-
-```html
-<!-- WebLogProxy GTM Tag Example -->
-<script src="https://yourdomain.com/logger.js?site_id=example.com"></script>
-<script>
-  window.wlp = window.wlp || {};
-  window.wlp.log = window.wlp.log || function(){};
-  window.wlp.log({
-    event: 'gtm_event',
-    gtm: true
-  });
-</script>
-```
-
-You can also use the provided template: [gtm_tag_template.html](./gtm_tag_template.html)

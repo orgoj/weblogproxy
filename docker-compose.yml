@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: orgoj/weblogproxy:latest
+    image: ghcr.io/orgoj/weblogproxy:latest
     container_name: weblogproxy
     restart: unless-stopped
     ports:
