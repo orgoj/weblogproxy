@@ -1,5 +1,17 @@
 # TODO List (ALWAYS READ BEFORE STARTING WORK: @todo_rules.mdc)
 
+## App logger
+
+- [ ] implement pattern for logging for applicattion messages to stdout
+- [ ] add logging level to config (INFO, DEBUG, WARN, ERROR, FATAL) default WARN
+- [ ] separade config for healthcheck true/false
+- [ ] convert all log messages to use new logger
+
+## Small enhancements
+
+- [ ] configurable allow healthcheck only from ip/CIDR list, default allow all
+- [ ] configurable error http return code for unknown route, default 200, always return blank body, and cache header for 1 hour
+
 ## E2E Tests
 
 - [-] Test output file formats (JSON/Text) by reading log files after E2E test.
