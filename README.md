@@ -85,6 +85,16 @@ Create a new configuration file based on the example:
 cp config/example.yaml config/config.yaml
 ```
 
+### Application Logging Configuration
+
+This section controls the application's own logging (stdout), not the forwarded client logs.
+
+```yaml
+app_log:
+  level: "WARN"  # Minimum level to log (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+  show_health_logs: false  # Set to true to see logs for /health endpoint calls
+```
+
 ### Server Configuration
 
 ```yaml
