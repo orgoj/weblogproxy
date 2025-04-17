@@ -15,9 +15,6 @@ alwaysApply: false
 - Update project documentation in **all** relevant `.md` files
 - Commit all changes in English language:  
   ```bash
-  git add .  
-  git commit -m "Short summary of changes (max 100 characters)
-
-  Detailed description of what was changed"
+  git add . ; git commit -m "Short summary of changes (max 100 characters)" -m "Detailed description of what was changed"
   ```
 - Describe what you did in the chat, and wait for the next task

@@ -1,0 +1,13 @@
+---
+description: 
+globs: Dockerfile
+alwaysApply: false
+---
+## Docker Best Practices
+- Ensure the entrypoint.sh script correctly handles the path to binary files in the container.
+- Check the correctness of paths in the Dockerfile for application startup.
+- After Docker file changes, always run `mise run docker-test` to verify functionality.
+- For binary applications in Docker, correctly set paths relative to WORKDIR.
+- Ensure correct setting and passing of UID/GID for container runtime.
+- Binary files should be in /usr/local/bin for following standard conventions.
+- Test Docker changes with different parameters (UID/GID, mounted volumes).

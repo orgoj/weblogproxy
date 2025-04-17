@@ -8,14 +8,11 @@ alwaysApply: true
 - Read @DESCRIPTION.md at chat start; this is the detailed documentation for creating the application.
 - Read @README.md at chat start; this is the application description for users.
 - Follow everywhere "Basic Goal" from @DESCRIPTION.md
-- Mark DONE items in @TODO.md as done after they are implemented.
-- Update README.md and DESCRIPTION.md with new implementations.
-- Change relevant tests if changing logic.
 - Don’t use `cd` in commands; run everything from the project root!!!
 - Do not add comments about what you’re doing, such as moving code or similar actions. That won’t be true in the next step, and no one cares. Comments should only describe the functionality that exists, not the steps you took to program it.
-- After code changes, always run tests at the end `mise run test`
 - Without functional unit tests, you cannot work on end-to-end tests.
-- Don't make anything up, if you don't know, read the DESCRIPTION.md again and follow the "Basic Goal" at all times.
+- Don't make anything up, if you don't know, read the @DESCRIPTION.md again and follow the "Basic Goal" at all times. Search on web best modern solution.
+- For searching files and string in project use [file_search_rules.mdc](mdc:.cursor/rules/file_search_rules.mdc)
 
 ## Documentation Language
 - All code, comments, variable names, and documentation must be in English.
@@ -24,7 +21,7 @@ alwaysApply: true
 ## Code Quality
 - Write code as a professional developer.
 - Follow security best practices.
-- Use the latest Go patterns and practices.
+- Use the latest patterns and practices for used programming language.
 - Write maintainable and clean code.
 - Follow SOLID principles.
 - Write comprehensive error handling.
@@ -40,6 +37,7 @@ alwaysApply: true
 - Follow Go idioms and conventions.
 
 ## Testing
+- Change relevant tests if changing logic.
 - Focus on integration tests for critical paths.
 - Write end-to-end tests for API endpoints.
 - Test all configuration scenarios.
@@ -48,15 +46,3 @@ alwaysApply: true
 - Use mocks for external dependencies.
 - Test error cases and edge conditions.
 - Ensure test coverage for critical components.
-
-## Docker Best Practices
-- Use `git add .` to add all changed files at once.
-- Ensure the entrypoint.sh script correctly handles the path to binary files in the container.
-- Check the correctness of paths in the Dockerfile for application startup.
-- After Docker file changes, always run `mise run docker-test` to verify functionality.
-- Update CHANGELOG.md after Docker configuration changes.
-- Mark completed tasks in TODO.md after implementation and testing.
-- For binary applications in Docker, correctly set paths relative to WORKDIR.
-- Ensure correct setting and passing of UID/GID for container runtime.
-- Binary files should be in /usr/local/bin for following standard conventions.
-- Test Docker changes with different parameters (UID/GID, mounted volumes).

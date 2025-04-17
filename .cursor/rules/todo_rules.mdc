@@ -7,6 +7,7 @@ alwaysApply: false
 - Read the first block of tasks
 - Identify related tasks that can be done simultaneously
 - Mark tasks you are working on with `[-]`
+- For searching file and strings in project use [file_search_rules.mdc](mdc:.cursor/rules/file_search_rules.mdc)
 - Read [DESCRIPTION.md](mdc:DESCRIPTION.md) for general application concept
 - Perform a code analysis to determine how to resolve the tasks
 - Find the latest information and procedures available online
