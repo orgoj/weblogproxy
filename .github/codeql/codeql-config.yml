@@ -1,0 +1,8 @@
+name: "WebLogProxy CodeQL config"
+
+paths-ignore:
+  - 'internal/handler/templates/logger.tmpl.js'  # Template file fails to analyze
+
+# Use default security queries
+queries:
+  - uses: security-extended  # Use extended security query suite for better coverage 
