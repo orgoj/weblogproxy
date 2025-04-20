@@ -5,14 +5,16 @@ alwaysApply: true
 ---
 ## Startup Chat Rules
 
-- Read @DESCRIPTION.md at chat start; this is the detailed documentation for creating the application.
+- Read @PRD.md at chat start; this is the detailed documentation for creating the application.
 - Read @README.md at chat start; this is the application description for users.
-- Follow everywhere "Basic Goal" from @DESCRIPTION.md
-- Don’t use `cd` in commands; run everything from the project root!!!
-- Do not add comments about what you’re doing, such as moving code or similar actions. That won’t be true in the next step, and no one cares. Comments should only describe the functionality that exists, not the steps you took to program it.
+- Follow everywhere "Basic Goal" from @PRD.md
+- Don't use `cd` in commands; run everything from the project root!!!
+- Do not add comments about what you're doing, such as moving code or similar actions. That won't be true in the next step, and no one cares. Comments should only describe the functionality that exists, not the steps you took to program it.
 - Without functional unit tests, you cannot work on end-to-end tests.
-- Don't make anything up, if you don't know, read the @DESCRIPTION.md again and follow the "Basic Goal" at all times. Search on web best modern solution.
+- Don't make anything up, if you don't know, read the @PRD.md again and follow the "Basic Goal" at all times. Search on web best modern solution.
 - For searching files and string in project use [file_search_rules.mdc](mdc:.cursor/rules/file_search_rules.mdc)
+- Follow commit guidelines in [commit_rules.mdc](mdc:.cursor/rules/commit_rules.mdc)
+- Before modifying TODO tasks, follow [todo_rules.mdc](mdc:.cursor/rules/todo_rules.mdc)
 
 ## Documentation Language
 - All code, comments, variable names, and documentation must be in English.

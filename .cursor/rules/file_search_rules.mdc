@@ -3,7 +3,7 @@ description: ALWAYS READ THIS RULE WHEN SEARCH TEXT OR FILE
 globs: 
 alwaysApply: false
 ---
-## Ripgrep usagefor search files and texts
+## Ripgrep usage for search files and texts
 
 To search within file contents:
 
