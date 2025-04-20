@@ -28,6 +28,10 @@ server:
     code: 200
     cache_control: "public, max-age=3600"
 
+app_log:
+  level: "WARN"  # Minimum level to log (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+  show_health_logs: false  # Set to true to see logs for /health endpoint calls
+
 security:
   token:
     secret: "change_this_to_a_secure_random_string" # MUST be changed
