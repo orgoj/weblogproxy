@@ -5,11 +5,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] man nastavene app_log.level=WARN a v condsole je presto, log debug a ten debug mode se mi taky nelibi, kdyz jde o release versi
-    [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
-    weblogproxy  | [GIN] 2025/04/20 - 21:14:43 | 200 |     150.762µs |       127.0.0.1 | GET      "/health"
-
-
 ## LOW PRIORITY
 
 - [ ] ConfigReload mame, ale je to skutecne implementovane, vidim to jen v config

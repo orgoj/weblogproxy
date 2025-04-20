@@ -9,7 +9,8 @@
 - 
 
 ### Fixed
-- 
+- Gin framework nyní vždy běží v release (production) módu, odstraněny debug hlášky v konzoli
+- Logování HTTP požadavků nyní respektuje nastavenou úroveň v app_log.level díky slog-gin middleware
 
 
 ## [0.11.0] - 2025-04-17

@@ -8,12 +8,16 @@ import (
 	"sync"
 	"time"
 
+	"log/slog"
+	"os"
+
 	"github.com/gin-gonic/gin"
 	configparser "github.com/orgoj/weblogproxy/internal/config"
 	"github.com/orgoj/weblogproxy/internal/handler"
 	"github.com/orgoj/weblogproxy/internal/iputil"
 	"github.com/orgoj/weblogproxy/internal/logger"
 	"github.com/orgoj/weblogproxy/internal/rules"
+	sloggin "github.com/samber/slog-gin"
 	"golang.org/x/time/rate"
 )
 
@@ -59,16 +63,33 @@ func NewServer(deps Dependencies) *Server {
 
 	deps.AppLogger.Debug("Creating server with mode: %s, path_prefix: %s", deps.Config.Server.Mode, deps.Config.Server.PathPrefix)
 
-	// Set Gin mode
-	if deps.Config.Server.Mode == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	} else {
-		gin.SetMode(gin.DebugMode)
-	}
+	// Set Gin mode (always release)
+	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
+	// Moderní logging přes slog-gin
+	var slogLevel slog.Level
+	switch deps.Config.AppLog.Level {
+	case "TRACE":
+		slogLevel = slog.LevelDebug // slog nemá TRACE, použijeme DEBUG
+	case "DEBUG":
+		slogLevel = slog.LevelDebug
+	case "INFO":
+		slogLevel = slog.LevelInfo
+	case "WARN":
+		slogLevel = slog.LevelWarn
+	case "ERROR":
+		slogLevel = slog.LevelError
+	case "FATAL":
+		slogLevel = slog.LevelError // slog nemá FATAL, použijeme ERROR
+	default:
+		slogLevel = slog.LevelWarn
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
+	router.Use(sloggin.NewWithConfig(logger, sloggin.Config{
+		DefaultLevel: slogLevel,
+	}))
 	router.Use(gin.Recovery())
-	router.Use(gin.Logger()) // Use Gin's logger middleware
 
 	if deps.Config.Server.CORS.Enabled {
 		router.Use(corsMiddleware(deps.Config.Server.CORS.AllowedOrigins, deps.Config.Server.CORS.MaxAge))
