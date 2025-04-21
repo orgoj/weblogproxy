@@ -398,6 +398,7 @@ func TestRuleProcessor_Process(t *testing.T) {
 						Code         int    `yaml:"code"`
 						CacheControl string `yaml:"cache_control"`
 					} `yaml:"unknown_route"`
+					ClientIPHeader string `yaml:"client_ip_header"`
 				}{
 					TrustedProxies: tt.trustedProxies,
 					Mode:           "embedded",
@@ -406,6 +407,7 @@ func TestRuleProcessor_Process(t *testing.T) {
 						Code         int    `yaml:"code"`
 						CacheControl string `yaml:"cache_control"`
 					}{Code: 200, CacheControl: "public, max-age=3600"},
+					ClientIPHeader: "",
 				},
 			})
 			if tt.expectError {

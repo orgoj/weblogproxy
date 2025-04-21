@@ -69,7 +69,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		var reqBody LogRequestBody
 		if err := ctx.ShouldBindJSON(&reqBody); err != nil {
 			// Log the binding error internally but return OK to client
-			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
+			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
 			deps.AppLogger.Warn("Log Handler: JSON binding error for IP %s: %v", clientIPForLog, err)
 			// Maybe truncate the body before logging if it was too large?
 			// For now, just log the error.
@@ -79,14 +79,14 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		// --- Input Validation & Sanitization ---
 		// Validate SiteID and GtmID format
 		if err := validation.IsValidID(reqBody.SiteID, validation.DefaultMaxInputLength); err != nil {
-			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
+			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
 			deps.AppLogger.Warn("Log Handler: Invalid site_id '%s' from IP %s: %v", reqBody.SiteID, clientIPForLog, err)
 			// Do not process further, but return OK
 			return
 		}
 		if reqBody.GtmID != "" {
 			if err := validation.IsValidID(reqBody.GtmID, validation.DefaultMaxInputLength); err != nil {
-				clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
+				clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
 				deps.AppLogger.Warn("Log Handler: Invalid gtm_id '%s' from IP %s: %v", reqBody.GtmID, clientIPForLog, err)
 				// Do not process further, but return OK
 				return
@@ -102,7 +102,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 			validation.DefaultMaxInputLength, // Reuse max input length for strings for now
 		)
 		if err != nil {
-			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
+			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
 			deps.AppLogger.Warn("Log Handler: Data sanitization error for IP %s (SiteID: %s): %v", clientIPForLog, reqBody.SiteID, err)
 			// Decide if we still want to log the (partially?) sanitized data or skip.
 			// For now, let's skip if sanitization fails completely.
@@ -118,13 +118,13 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		// 1. Verify Token - Use security.ValidateToken directly
 		valid, err := security.ValidateToken(deps.TokenSecret, reqBody.SiteID, reqBody.GtmID, reqBody.Token)
 		if err != nil {
-			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
+			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
 			deps.AppLogger.Warn("Log Handler: Token validation error for IP %s, SiteID '%s': %v", clientIPForLog, reqBody.SiteID, err)
 			ctx.Header("X-Log-Status", "failure")
 			return // Return OK, but log the error
 		}
 		if !valid {
-			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
+			clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
 			deps.AppLogger.Warn("Log Handler: Invalid token received from IP %s for SiteID '%s'", clientIPForLog, reqBody.SiteID)
 			ctx.Header("X-Log-Status", "failure")
 			return // Return OK
@@ -168,7 +168,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 		}
 
 		// 5. Process each target destination
-		clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies)
+		clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
 		userAgentForLog := ctx.Request.UserAgent()
 		baseRecordTemplate := enricher.CreateBaseRecord(reqBody.SiteID, reqBody.GtmID, clientIPForLog, userAgentForLog)
 

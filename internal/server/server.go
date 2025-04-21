@@ -226,7 +226,7 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		ip := iputil.GetClientIP(c.Request, parsedTrustedProxies)
+		ip := iputil.GetClientIP(c.Request, parsedTrustedProxies, s.config.Server.ClientIPHeader)
 
 		s.limiterMu.Lock()
 		limiter, exists := s.limiters[ip]
@@ -250,7 +250,7 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 // healthIPMiddleware checks client IP against allowed CIDRs for health endpoints
 func (s *Server) healthIPMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ipStr := iputil.GetClientIP(c.Request, s.trustedProxiesParsed)
+		ipStr := iputil.GetClientIP(c.Request, s.trustedProxiesParsed, s.config.Server.ClientIPHeader)
 		ip := net.ParseIP(ipStr)
 		if ip == nil {
 			s.deps.AppLogger.Error("Failed to parse client IP for health check: %s", ipStr)

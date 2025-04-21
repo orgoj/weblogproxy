@@ -35,7 +35,7 @@ func rateLimitMiddlewareTest(
 	}
 
 	return func(c *gin.Context) {
-		ip := iputil.GetClientIP(c.Request, parsedTrustedProxies)
+		ip := iputil.GetClientIP(c.Request, parsedTrustedProxies, "")
 
 		limiterMu.Lock()
 		limiter, exists := limiters[ip]
@@ -208,4 +208,14 @@ func TestRateLimitMiddlewareIsolated(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Custom header", func(t *testing.T) {
+		parsedTrustedProxies, _ := iputil.ParseCIDRs([]string{"10.0.0.1/32"})
+		req := httptest.NewRequest("GET", "/", nil)
+		req.Header.Set("X-Real-IP", "1.2.3.4")
+		ip := iputil.GetClientIP(req, parsedTrustedProxies, "X-Real-IP")
+		if ip != "1.2.3.4" {
+			t.Errorf("expected 1.2.3.4, got %s", ip)
+		}
+	})
 }

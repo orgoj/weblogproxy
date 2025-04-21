@@ -144,7 +144,7 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 
 		// Generate token and logURL only when logging is enabled
 		if ruleResult.ShouldLogToServer {
-			clientIP := iputil.GetClientIP(ctx.Request, parsedProxies)
+			clientIP := iputil.GetClientIP(ctx.Request, parsedProxies, deps.Config.Server.ClientIPHeader)
 			token, err := security.GenerateToken(deps.Config.Security.Token.Secret, siteID, gtmID, deps.TokenExpirationDur)
 			if err != nil {
 				// Log internal error, but continue; token will be empty

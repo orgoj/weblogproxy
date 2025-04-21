@@ -32,6 +32,7 @@ server:
   unknown_route:
     code: 200
     cache_control: "public, max-age=3600"
+  # client_ip_header: "CF-Connecting-IP" # Header to use for real client IP (e.g. CF-Connecting-IP, X-Real-IP, X-Client-Real-IP). If not set, fallback to X-Forwarded-For (trusted) or RemoteAddr.
 
 app_log:
   level: "WARN"  # Minimum level to log (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)

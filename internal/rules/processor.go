@@ -60,7 +60,7 @@ func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProce
 	accumulatedScriptsMap := make(map[string]config.ScriptInjectionSpec)
 	accumulatedDataMap := make(map[string]config.AddLogDataSpec)
 
-	clientIPString := iputil.GetClientIP(r, rp.trustedProxies)
+	clientIPString := iputil.GetClientIP(r, rp.trustedProxies, "")
 	var clientIP net.IP
 	if clientIPString != "" {
 		clientIP = net.ParseIP(clientIPString)

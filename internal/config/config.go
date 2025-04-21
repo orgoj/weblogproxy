@@ -73,6 +73,7 @@ type Config struct {
 			Code         int    `yaml:"code"`
 			CacheControl string `yaml:"cache_control"`
 		} `yaml:"unknown_route"`
+		ClientIPHeader string `yaml:"client_ip_header"` // Header to use for real client IP (e.g. CF-Connecting-IP, X-Real-IP)
 	} `yaml:"server"`
 
 	Security struct {

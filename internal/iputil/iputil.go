@@ -52,37 +52,43 @@ func IsIPInAnyCIDR(ip net.IP, cidrs []*net.IPNet) bool {
 	return false
 }
 
-// GetClientIP extracts the client IP address from the request, considering X-Forwarded-For.
-// It needs the list of trusted proxy CIDRs to determine if X-Forwarded-For should be trusted.
-func GetClientIP(r *http.Request, trustedProxies []*net.IPNet) string {
-	// Try X-Forwarded-For first
+// GetClientIP extracts the client IP address from the request.
+// It first tries the configured header (e.g. CF-Connecting-IP, X-Real-IP),
+// then X-Forwarded-For (if remote IP is trusted), and finally falls back to RemoteAddr.
+func GetClientIP(r *http.Request, trustedProxies []*net.IPNet, clientIPHeader string) string {
+	// 1. Try configured header (e.g. CF-Connecting-IP, X-Real-IP, X-Client-Real-IP)
+	if clientIPHeader != "" {
+		h := r.Header.Get(clientIPHeader)
+		if h != "" {
+			ip := strings.TrimSpace(h)
+			if net.ParseIP(ip) != nil {
+				return ip
+			}
+		}
+	}
+
+	// 2. Try X-Forwarded-For if remote IP is trusted
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff != "" {
-		// Get the remote address (the immediate peer)
 		remoteIPStr, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			// Log error? Fallback to RemoteAddr if split fails
 			remoteIPStr = r.RemoteAddr
 		}
 		remoteIP := net.ParseIP(remoteIPStr)
-
-		// Check if the remote peer is a trusted proxy
 		if remoteIP != nil && IsIPInAnyCIDR(remoteIP, trustedProxies) {
-			// Trust XFF header, take the *first* IP in the list
 			ips := strings.Split(xff, ",")
 			if len(ips) > 0 {
 				firstIPStr := strings.TrimSpace(ips[0])
 				if net.ParseIP(firstIPStr) != nil {
-					return firstIPStr // Return the first valid IP from XFF
+					return firstIPStr
 				}
 			}
-		} // Else: Remote peer is not trusted, ignore XFF
+		}
 	}
 
-	// If XFF is not present or not trusted, use RemoteAddr
+	// 3. Fallback to RemoteAddr
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		// This might happen for non-standard formats, return RemoteAddr as is
 		return r.RemoteAddr
 	}
 	return ip
