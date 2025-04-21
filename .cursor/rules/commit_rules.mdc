@@ -3,8 +3,8 @@ description: MUST READ THESE RULES FOR GIT COMMIT BEFORE EVERY COMMIT
 globs: 
 alwaysApply: false
 ---
-
 # 🚨 MANDATORY: Always Follow These Rules Before Every Git Commit
+- For every new configuration option, you MUST add it (with a comment) to [config/example.yaml](mdc:config/example.yaml) so users always see all available options.
 - Run all tests as defined in `mise.toml`: `mise test`, `mise security-check`, `mise docker-test`
 - If there are any errors or warnings, fix them and re-run the tests until everything passes automatically
 - Once everything is resolved, continue with the following steps:
