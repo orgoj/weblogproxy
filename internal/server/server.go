@@ -147,7 +147,7 @@ func NewServer(deps Dependencies) *Server {
 		latency := time.Since(start)
 
 		// Log in our standard format
-		timestamp := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+		timestamp := time.Now().Format("2006-01-02T15:04:05Z07:00")
 		logLine := fmt.Sprintf("[%s] %s: Incoming request method=%s path=%s status=%d latency=%s ip=%s\n",
 			timestamp,
 			level,

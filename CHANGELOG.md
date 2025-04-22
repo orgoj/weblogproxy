@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.12.4] - 2025-04-22
+
+### Fixed
+- FIX Timezone in logs
+
+
 ## [0.12.2] - 2025-04-22
 
 ### Fixed

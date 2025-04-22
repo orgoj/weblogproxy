@@ -118,7 +118,7 @@ func (l *AppLogger) logf(level LogLevel, isHealth bool, format string, args ...i
 	}
 
 	// Format: [2006-01-02T15:04:05Z] LEVEL: message
-	now := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
 	levelName := logLevelNames[level]
 
 	message := fmt.Sprintf(format, args...)
