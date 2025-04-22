@@ -14,6 +14,7 @@
 - Gin framework nyní vždy běží v release (production) módu, odstraněny debug hlášky v konzoli
 - Logování HTTP požadavků nyní respektuje nastavenou úroveň v app_log.level díky slog-gin middleware
 - Fixed JavaScript options inheritance in log rules: only explicitly set values in each rule now overwrite previous values, ensuring correct accumulation of `track_url` and `track_traceback` options.
+- Logger.js tests now check for the actual presence of code setting `payload.data.__url` and `payload.data.__traceback` in the generated JavaScript, not just config values.
 
 
 ## [0.11.0] - 2025-04-17

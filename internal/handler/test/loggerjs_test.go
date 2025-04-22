@@ -169,9 +169,8 @@ func TestLoggerJSHandler_WithJavaScriptOptions(t *testing.T) {
 	// Check the response
 	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status")
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
-	assert.Contains(t, w.Body.String(), "jsOptions: {", "Should contain jsOptions object")
-	assert.Contains(t, w.Body.String(), "trackURL: true", "Should have trackURL enabled")
-	assert.Contains(t, w.Body.String(), "trackTraceback: true", "Should have trackTraceback enabled")
+	assert.Contains(t, w.Body.String(), "payload.data.__url = window.location.href;", "Should set __url in payload if enabled")
+	assert.Contains(t, w.Body.String(), "payload.data.__traceback = getCallStack();", "Should set __traceback in payload if enabled")
 }
 
 func TestLoggerJSHandler_WithJavaScriptOptionsInheritance(t *testing.T) {
@@ -233,7 +232,6 @@ func TestLoggerJSHandler_WithJavaScriptOptionsInheritance(t *testing.T) {
 	// Check the response
 	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status")
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
-	assert.Contains(t, w.Body.String(), "jsOptions: {", "Should contain jsOptions object")
-	assert.Contains(t, w.Body.String(), "trackURL: true", "Should have trackURL enabled from first rule")
-	assert.Contains(t, w.Body.String(), "trackTraceback: true", "Should have trackTraceback enabled from second rule")
+	assert.Contains(t, w.Body.String(), "payload.data.__url = window.location.href;", "Should set __url in payload if enabled")
+	assert.Contains(t, w.Body.String(), "payload.data.__traceback = getCallStack();", "Should set __traceback in payload if enabled")
 }

@@ -10,8 +10,8 @@ Go template comments like this one are not rendered in the output.
         siteId: "{{.SiteID}}",
         gtmId: "{{.GtmID}}",
         token: "{{.Token}}",
-        logUrl: "{{.LogURL}}"
-        {{if .ScriptsToInject}},
+        logUrl: "{{.LogURL}}",
+        {{if .ScriptsToInject}}
         scriptsToInject: [
             {{range .ScriptsToInject}}
             {
@@ -20,16 +20,11 @@ Go template comments like this one are not rendered in the output.
                 defer: {{.Defer}}
             }{{if not .IsLast}},{{end}}
             {{end}}
-        ]
-        {{end}}
-        {{if .JavaScriptOptions}},
-        jsOptions: {
-            trackURL: {{.JavaScriptOptions.TrackURL}},
-            trackTraceback: {{.JavaScriptOptions.TrackTraceback}}
-        }
+        ],
         {{end}}
     };
 
+    {{if .JavaScriptOptions.TrackTraceback}}
     function getCallStack() {
         try {
             throw new Error('__traceback__');
@@ -37,6 +32,7 @@ Go template comments like this one are not rendered in the output.
             return e.stack.split('\n').slice(2).map(line => line.trim());
         }
     }
+    {{end}}
 
     function sendLog(data) {
         const payload = {
@@ -52,15 +48,12 @@ Go template comments like this one are not rendered in the output.
             payload.data = { message: String(data) };
         }
 
-        // Přidání URL a call stacku podle konfigurace
-        if (config.jsOptions) {
-            if (config.jsOptions.trackURL) {
-                payload.data.__url = window.location.href;
-            }
-            if (config.jsOptions.trackTraceback) {
-                payload.data.__traceback = getCallStack();
-            }
-        }
+        {{if .JavaScriptOptions.TrackURL}}
+        payload.data.__url = window.location.href;
+        {{end}}
+        {{if .JavaScriptOptions.TrackTraceback}}
+        payload.data.__traceback = getCallStack();
+        {{end}}
 
         navigator.sendBeacon(config.logUrl, JSON.stringify(payload));
     }
