@@ -10,6 +10,7 @@ WebLogProxy is a flexible and secure web logging proxy that allows you to collec
 * **Rule-based Logging**: Define rules based on site ID, GTM ID, user agent, and client IP to control logging behavior.
 * **Script Injection**: Inject scripts based on rules, even when logging is disabled.
 * **Data Enrichment**: Add or modify log data with values from various sources (static, HTTP headers, query parameters, post data).
+* **JavaScript Options**: Configure tracking of page URL and call stack trace for each log event based on rules.
 * **Security**: Secure token generation and validation with configurable expiration.
 * **Rate Limiting**: Protect against abuse with configurable rate limits.
 * **Flexible Deployment**: Run as a standalone server or embedded behind a reverse proxy.

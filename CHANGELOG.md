@@ -3,7 +3,9 @@
 ## [Unreleased]
 
 ### Added
-- 
+- Added JavaScript options in log rules to track page URL and call stack for each log event
+- Added `javascript_options` configuration with `track_url` and `track_traceback` options
+- Added support for inheriting JavaScript options through rules with `continue: true`
 
 ### Changed
 - 
@@ -11,6 +13,7 @@
 ### Fixed
 - Gin framework nyní vždy běží v release (production) módu, odstraněny debug hlášky v konzoli
 - Logování HTTP požadavků nyní respektuje nastavenou úroveň v app_log.level díky slog-gin middleware
+- Fixed JavaScript options inheritance in log rules: only explicitly set values in each rule now overwrite previous values, ensuring correct accumulation of `track_url` and `track_traceback` options.
 
 
 ## [0.11.0] - 2025-04-17

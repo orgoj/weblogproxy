@@ -29,11 +29,15 @@ type RuleProcessor struct {
 
 // LogProcessingResult holds the outcome of rule processing for a request.
 type LogProcessingResult struct {
-	ShouldInjectScripts   bool                         // Should any scripts be injected? (Any rule matched condition)
-	ShouldLogToServer     bool                         // Should active logging to /log endpoint be enabled? (Determined by the *first* final rule)
-	AccumulatedScripts    []config.ScriptInjectionSpec // List of unique scripts to inject from ALL matched rules
-	AccumulatedAddLogData []config.AddLogDataSpec      // Combined specs from matched rules (last write wins for a name)
-	TargetDestinations    []string                     // Destinations from the *first* final rule (nil means all enabled)
+	ShouldInjectScripts          bool                         // Should any scripts be injected? (Any rule matched condition)
+	ShouldLogToServer            bool                         // Should active logging to /log endpoint be enabled? (Determined by the *first* final rule)
+	AccumulatedScripts           []config.ScriptInjectionSpec // List of unique scripts to inject from ALL matched rules
+	AccumulatedAddLogData        []config.AddLogDataSpec      // Combined specs from matched rules (last write wins for a name)
+	TargetDestinations           []string                     // Destinations from the *first* final rule (nil means all enabled)
+	AccumulatedJavaScriptOptions struct {                     // JavaScript options from matched rules (last write wins)
+		TrackURL       bool
+		TrackTraceback bool
+	}
 }
 
 // NewRuleProcessor creates a new RuleProcessor.
@@ -56,6 +60,10 @@ func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProce
 		AccumulatedScripts:    nil,
 		AccumulatedAddLogData: nil,
 		TargetDestinations:    nil,
+		AccumulatedJavaScriptOptions: struct {
+			TrackURL       bool
+			TrackTraceback bool
+		}{},
 	}
 	accumulatedScriptsMap := make(map[string]config.ScriptInjectionSpec)
 	accumulatedDataMap := make(map[string]config.AddLogDataSpec)
@@ -91,6 +99,14 @@ func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProce
 				if _, exists := accumulatedScriptsMap[script.URL]; !exists {
 					accumulatedScriptsMap[script.URL] = script
 				}
+			}
+
+			// Accumulate JavaScript options (only overwrite if explicitly set in rule)
+			if currentRule.JavaScriptOptions.TrackURL != (struct{ TrackURL bool }{TrackURL: false}).TrackURL {
+				result.AccumulatedJavaScriptOptions.TrackURL = currentRule.JavaScriptOptions.TrackURL
+			}
+			if currentRule.JavaScriptOptions.TrackTraceback != (struct{ TrackTraceback bool }{TrackTraceback: false}).TrackTraceback {
+				result.AccumulatedJavaScriptOptions.TrackTraceback = currentRule.JavaScriptOptions.TrackTraceback
 			}
 
 			// Check if this is a final rule (not continuing)

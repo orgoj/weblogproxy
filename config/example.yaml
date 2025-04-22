@@ -62,6 +62,9 @@ log_config:
         X-Debug-Mode: false                 # Header must NOT exist
     enabled: true
     continue: false  # If true, rule only accumulates data/scripts, does not affect logging decision
+    javascript_options:
+      track_url: true       # Track page URL for each log event
+      track_traceback: true # Track JavaScript call stack for each log event
     add_log_data:
       - name: "website"
         source: "static"

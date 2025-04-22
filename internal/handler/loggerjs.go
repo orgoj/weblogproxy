@@ -31,13 +31,23 @@ var loggerJSTemplateContent string
 
 // LoggerJsData holds all dynamic values needed for the logger.js template.
 type LoggerJsData struct {
-	LogEnabled       bool
-	SiteID           string
-	GtmID            string
-	Token            string
-	LogURL           string // Full URL for the /log endpoint
-	ScriptsToInject  []config.ScriptInjectionSpec
-	GlobalObjectName string // Name of the global JavaScript object
+	LogEnabled        bool
+	SiteID            string
+	GtmID             string
+	Token             string
+	LogURL            string // Full URL for the /log endpoint
+	ScriptsToInject   []ScriptInjectionTemplateData
+	GlobalObjectName  string // Name of the global JavaScript object
+	JavaScriptOptions struct {
+		TrackURL       bool
+		TrackTraceback bool
+	}
+}
+
+// ScriptInjectionTemplateData extends ScriptInjectionSpec with template-specific fields
+type ScriptInjectionTemplateData struct {
+	config.ScriptInjectionSpec
+	IsLast bool
 }
 
 // --- End Template Data Structure ---
@@ -133,13 +143,24 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 
 		// Prepare data for the template in the same way regardless of whether logging is enabled
 		data := LoggerJsData{
-			SiteID:           siteID,
-			GtmID:            gtmID,
-			LogEnabled:       ruleResult.ShouldLogToServer,
-			ScriptsToInject:  ruleResult.AccumulatedScripts,
-			Token:            "",
-			LogURL:           "",
-			GlobalObjectName: deps.Config.Server.JavaScript.GlobalObjectName,
+			SiteID:            siteID,
+			GtmID:             gtmID,
+			LogEnabled:        ruleResult.ShouldLogToServer,
+			Token:             "",
+			LogURL:            "",
+			GlobalObjectName:  deps.Config.Server.JavaScript.GlobalObjectName,
+			JavaScriptOptions: ruleResult.AccumulatedJavaScriptOptions,
+		}
+
+		// Convert ScriptInjectionSpec to ScriptInjectionTemplateData with IsLast flag
+		if len(ruleResult.AccumulatedScripts) > 0 {
+			data.ScriptsToInject = make([]ScriptInjectionTemplateData, len(ruleResult.AccumulatedScripts))
+			for i, script := range ruleResult.AccumulatedScripts {
+				data.ScriptsToInject[i] = ScriptInjectionTemplateData{
+					ScriptInjectionSpec: script,
+					IsLast:              i == len(ruleResult.AccumulatedScripts)-1,
+				}
+			}
 		}
 
 		// Generate token and logURL only when logging is enabled

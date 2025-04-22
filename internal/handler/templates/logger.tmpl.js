@@ -11,18 +11,32 @@ Go template comments like this one are not rendered in the output.
         gtmId: "{{.GtmID}}",
         token: "{{.Token}}",
         logUrl: "{{.LogURL}}"
-        {{if .ScriptsToInject}}
-        ,scriptsToInject: [
+        {{if .ScriptsToInject}},
+        scriptsToInject: [
             {{range .ScriptsToInject}}
             {
                 url: "{{.URL}}",
                 async: {{.Async}},
                 defer: {{.Defer}}
-            },
+            }{{if not .IsLast}},{{end}}
             {{end}}
         ]
         {{end}}
+        {{if .JavaScriptOptions}},
+        jsOptions: {
+            trackURL: {{.JavaScriptOptions.TrackURL}},
+            trackTraceback: {{.JavaScriptOptions.TrackTraceback}}
+        }
+        {{end}}
     };
+
+    function getCallStack() {
+        try {
+            throw new Error('__traceback__');
+        } catch (e) {
+            return e.stack.split('\n').slice(2).map(line => line.trim());
+        }
+    }
 
     function sendLog(data) {
         const payload = {
@@ -36,6 +50,16 @@ Go template comments like this one are not rendered in the output.
             payload.data = data;
         } else {
             payload.data = { message: String(data) };
+        }
+
+        // Přidání URL a call stacku podle konfigurace
+        if (config.jsOptions) {
+            if (config.jsOptions.trackURL) {
+                payload.data.__url = window.location.href;
+            }
+            if (config.jsOptions.trackTraceback) {
+                payload.data.__traceback = getCallStack();
+            }
         }
 
         navigator.sendBeacon(config.logUrl, JSON.stringify(payload));

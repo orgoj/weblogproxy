@@ -121,3 +121,119 @@ func TestLoggerJSHandler_InvalidGtmID(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "window.wlp.log = function() {}", "Should return empty log function")
 	assert.NotContains(t, w.Body.String(), "logEnabled: true", "Should not enable logging")
 }
+
+func TestLoggerJSHandler_WithJavaScriptOptions(t *testing.T) {
+	// Set up a test Gin context
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	// Create a request with valid site_id
+	req, _ := http.NewRequest("GET", "/logger.js?site_id=test-site", nil)
+	c.Request = req
+
+	// Setup config with a rule that enables JavaScript options
+	testConfig := &config.Config{}
+	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
+	testConfig.Security.Token.Secret = "test-secret"
+	testConfig.LogConfig = []config.LogRule{
+		{
+			Condition: config.LogRuleCondition{
+				SiteID: "test-site",
+			},
+			Enabled: true,
+			JavaScriptOptions: struct {
+				TrackURL       bool `yaml:"track_url,omitempty"`
+				TrackTraceback bool `yaml:"track_traceback,omitempty"`
+			}{
+				TrackURL:       true,
+				TrackTraceback: true,
+			},
+		},
+	}
+
+	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	deps := handler.LoggerJSHandlerDeps{
+		RuleProcessor:      ruleProcessor,
+		Config:             testConfig,
+		TokenExpirationDur: 10 * time.Minute,
+		AppLogger:          logger.GetAppLogger(),
+	}
+
+	// Get the handler
+	handlerFunc := handler.NewLoggerJSHandler(deps)
+
+	// Execute the handler
+	handlerFunc(c)
+
+	// Check the response
+	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status")
+	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
+	assert.Contains(t, w.Body.String(), "jsOptions: {", "Should contain jsOptions object")
+	assert.Contains(t, w.Body.String(), "trackURL: true", "Should have trackURL enabled")
+	assert.Contains(t, w.Body.String(), "trackTraceback: true", "Should have trackTraceback enabled")
+}
+
+func TestLoggerJSHandler_WithJavaScriptOptionsInheritance(t *testing.T) {
+	// Set up a test Gin context
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	// Create a request with valid site_id
+	req, _ := http.NewRequest("GET", "/logger.js?site_id=test-site", nil)
+	c.Request = req
+
+	// Setup config with rules that test inheritance of JavaScript options
+	testConfig := &config.Config{}
+	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
+	testConfig.Security.Token.Secret = "test-secret"
+	testConfig.LogConfig = []config.LogRule{
+		{
+			Condition: config.LogRuleCondition{
+				SiteID: "test-site",
+			},
+			Enabled:  true,
+			Continue: true,
+			JavaScriptOptions: struct {
+				TrackURL       bool `yaml:"track_url,omitempty"`
+				TrackTraceback bool `yaml:"track_traceback,omitempty"`
+			}{
+				TrackURL: true,
+			},
+		},
+		{
+			Condition: config.LogRuleCondition{
+				SiteID: "test-site",
+			},
+			Enabled: true,
+			JavaScriptOptions: struct {
+				TrackURL       bool `yaml:"track_url,omitempty"`
+				TrackTraceback bool `yaml:"track_traceback,omitempty"`
+			}{
+				TrackTraceback: true,
+			},
+		},
+	}
+
+	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	deps := handler.LoggerJSHandlerDeps{
+		RuleProcessor:      ruleProcessor,
+		Config:             testConfig,
+		TokenExpirationDur: 10 * time.Minute,
+		AppLogger:          logger.GetAppLogger(),
+	}
+
+	// Get the handler
+	handlerFunc := handler.NewLoggerJSHandler(deps)
+
+	// Execute the handler
+	handlerFunc(c)
+
+	// Check the response
+	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status")
+	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
+	assert.Contains(t, w.Body.String(), "jsOptions: {", "Should contain jsOptions object")
+	assert.Contains(t, w.Body.String(), "trackURL: true", "Should have trackURL enabled from first rule")
+	assert.Contains(t, w.Body.String(), "trackTraceback: true", "Should have trackTraceback enabled from second rule")
+}
