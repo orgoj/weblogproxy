@@ -56,7 +56,7 @@ func main() {
 	appLogger.SetShowHealth(cfg.AppLog.ShowHealthLogs)
 
 	// Log the version at startup
-	appLogger.Info("Starting %s", version.VersionInfo())
+	appLogger.Warn("%s", version.VersionInfo())
 
 	// --- Dependency Initialization --- //
 

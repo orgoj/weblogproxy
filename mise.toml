@@ -35,7 +35,7 @@ depends = ["format"]
 
 [tasks.build]
 description = "Build the weblogproxy binary executable"
-run = "go build -o weblogproxy ./cmd/weblogproxy"
+run = "go build -ldflags \"-X github.com/orgoj/weblogproxy/internal/version.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X github.com/orgoj/weblogproxy/internal/version.CommitHash=$(git rev-parse --short HEAD)\" -o weblogproxy ./cmd/weblogproxy"
 depends = ["deps", "format", "lint", "security-check"]
 sources = ["go.*", "cmd/**/*", "internal/**/*"]
 outputs = "weblogproxy"
@@ -49,12 +49,12 @@ depends = ["build"]
 
 [tasks.run]
 description = "Run weblogproxy with example configuration"
-run = "go run ./cmd/weblogproxy --config config/example.yaml"
-depends = ["test"]
+run = "./weblogproxy --config config/example.yaml"
+depends = ["build", "test"]
 
 [tasks.run-test]
 description = "Run weblogproxy with test configuration"
-run = "go run ./cmd/weblogproxy --config config/test.yaml"
+run = "./weblogproxy --config config/test.yaml"
 depends = ["test"]
 
 [tasks.test-unit]

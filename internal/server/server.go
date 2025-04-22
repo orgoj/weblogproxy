@@ -301,7 +301,7 @@ func (s *Server) healthIPMiddleware() gin.HandlerFunc {
 // Start starts the HTTP server
 func (s *Server) Start() error {
 	addr := fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
-	s.deps.AppLogger.Info("Starting server on %s", addr)
+	s.deps.AppLogger.Warn("Starting server on %s", addr)
 	// Consider using http.Server for more control over shutdown
 	return s.router.Run(addr)
 }
