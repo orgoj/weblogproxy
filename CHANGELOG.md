@@ -9,7 +9,7 @@
 - 
 
 ### Fixed
-- 
+- Suppressed health endpoint logs when `app_log.show_health_logs` is false and improved default request log level handling in slog-gin middleware.
 
 
 ## [0.12.0] - 2025-04-22

@@ -86,9 +86,42 @@ func NewServer(deps Dependencies) *Server {
 		slogLevel = slog.LevelWarn
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
-	router.Use(sloggin.NewWithConfig(logger, sloggin.Config{
-		DefaultLevel: slogLevel,
-	}))
+
+	slogGinConfig := sloggin.Config{
+		DefaultLevel:     slog.LevelInfo, // Default level for requests is INFO unless overridden
+		ClientErrorLevel: slog.LevelWarn,
+		ServerErrorLevel: slog.LevelError,
+		// Add a filter to skip /health logs if show_health_logs is false
+		Filters: []sloggin.Filter{
+			func(c *gin.Context) bool {
+				if c.Request.URL.Path == "/health" || c.Request.URL.Path == "/health/" {
+					// Check both base path and prefixed path if applicable
+					basePath := "/"
+					if deps.Config.Server.Mode == "embedded" && deps.Config.Server.PathPrefix != "" {
+						basePath = deps.Config.Server.PathPrefix
+						if basePath[0] != '/' {
+							basePath = "/" + basePath
+						}
+						if basePath != "/" && basePath[len(basePath)-1] != '/' {
+							basePath += "/"
+						}
+					}
+					healthPath := basePath + "health"
+					if c.Request.URL.Path == healthPath || c.Request.URL.Path == healthPath+"/" {
+						return !deps.Config.AppLog.ShowHealthLogs // Skip if ShowHealthLogs is false
+					}
+				}
+				return true // Log other requests
+			},
+		},
+	}
+
+	// Adjust default level based on global config if it's higher than INFO
+	if slogLevel > slog.LevelInfo {
+		slogGinConfig.DefaultLevel = slogLevel
+	}
+
+	router.Use(sloggin.NewWithConfig(logger, slogGinConfig))
 	router.Use(gin.Recovery())
 
 	if deps.Config.Server.CORS.Enabled {
