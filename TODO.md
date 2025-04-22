@@ -5,6 +5,10 @@
 
 ## HIGH PRIORITY
 
+- [ ] povolit tecky v site_id
+- [ ] user_agent nema byt defaultne logovan
+- [ ] logovat i stazeni scriptu
+
 ## LOW PRIORITY
 
 - [ ] ConfigReload existuje, ale je to skutecne implementovane, vidim to jen v config
