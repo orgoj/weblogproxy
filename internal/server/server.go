@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/orgoj/weblogproxy/internal/iputil"
 	"github.com/orgoj/weblogproxy/internal/logger"
 	"github.com/orgoj/weblogproxy/internal/rules"
-	sloggin "github.com/samber/slog-gin"
 	"golang.org/x/time/rate"
 )
 
@@ -67,61 +67,100 @@ func NewServer(deps Dependencies) *Server {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
-	// Moderní logging přes slog-gin
-	var slogLevel slog.Level
-	switch deps.Config.AppLog.Level {
-	case "TRACE":
-		slogLevel = slog.LevelDebug // slog nemá TRACE, použijeme DEBUG
-	case "DEBUG":
-		slogLevel = slog.LevelDebug
-	case "INFO":
-		slogLevel = slog.LevelInfo
-	case "WARN":
-		slogLevel = slog.LevelWarn
-	case "ERROR":
-		slogLevel = slog.LevelError
-	case "FATAL":
-		slogLevel = slog.LevelError // slog nemá FATAL, použijeme ERROR
-	default:
-		slogLevel = slog.LevelWarn
-	}
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
 
-	slogGinConfig := sloggin.Config{
-		DefaultLevel:     slog.LevelInfo, // Default level for requests is INFO unless overridden
-		ClientErrorLevel: slog.LevelWarn,
-		ServerErrorLevel: slog.LevelError,
-		// Add a filter to skip /health logs if show_health_logs is false
-		Filters: []sloggin.Filter{
-			func(c *gin.Context) bool {
-				if c.Request.URL.Path == "/health" || c.Request.URL.Path == "/health/" {
-					// Check both base path and prefixed path if applicable
-					basePath := "/"
-					if deps.Config.Server.Mode == "embedded" && deps.Config.Server.PathPrefix != "" {
-						basePath = deps.Config.Server.PathPrefix
-						if basePath[0] != '/' {
-							basePath = "/" + basePath
-						}
-						if basePath != "/" && basePath[len(basePath)-1] != '/' {
-							basePath += "/"
-						}
+	// Parse minimum log level from config - this determines what logs we want to see
+	var minLevel slog.Level
+	switch strings.ToUpper(deps.Config.AppLog.Level) {
+	case "TRACE", "DEBUG":
+		minLevel = slog.LevelDebug
+	case "INFO":
+		minLevel = slog.LevelInfo
+	case "WARN":
+		minLevel = slog.LevelWarn
+	case "ERROR":
+		minLevel = slog.LevelError
+	case "FATAL":
+		minLevel = slog.LevelError // slog doesn't have FATAL, use ERROR
+	default:
+		minLevel = slog.LevelWarn
+	}
+
+	// Parse trusted proxies once for the middleware
+	parsedTrustedProxies, err := iputil.ParseCIDRs(deps.Config.Server.TrustedProxies)
+	if err != nil {
+		panic(fmt.Sprintf("server: invalid server.trusted_proxies: %v", err))
+	}
+
+	// Custom logging middleware to match our format
+	router.Use(func(c *gin.Context) {
+		// Start timer
+		start := time.Now()
+
+		// Process request
+		c.Next()
+
+		// Skip health check logs if disabled
+		if !deps.Config.AppLog.ShowHealthLogs {
+			if c.Request.URL.Path == "/health" || c.Request.URL.Path == "/health/" {
+				// Check both base path and prefixed path if applicable
+				basePath := "/"
+				if deps.Config.Server.Mode == "embedded" && deps.Config.Server.PathPrefix != "" {
+					basePath = deps.Config.Server.PathPrefix
+					if basePath[0] != '/' {
+						basePath = "/" + basePath
 					}
-					healthPath := basePath + "health"
-					if c.Request.URL.Path == healthPath || c.Request.URL.Path == healthPath+"/" {
-						return !deps.Config.AppLog.ShowHealthLogs // Skip if ShowHealthLogs is false
+					if basePath != "/" && basePath[len(basePath)-1] != '/' {
+						basePath += "/"
 					}
 				}
-				return true // Log other requests
-			},
-		},
-	}
+				healthPath := basePath + "health"
+				if c.Request.URL.Path == healthPath || c.Request.URL.Path == healthPath+"/" {
+					return
+				}
+			}
+		}
 
-	// Adjust default level based on global config if it's higher than INFO
-	if slogLevel > slog.LevelInfo {
-		slogGinConfig.DefaultLevel = slogLevel
-	}
+		// Get client IP
+		ip := iputil.GetClientIP(c.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
 
-	router.Use(sloggin.NewWithConfig(logger, slogGinConfig))
+		// Determine log level based on status code
+		var level string
+		statusCode := c.Writer.Status()
+		if statusCode >= 500 {
+			if minLevel > slog.LevelError {
+				return
+			}
+			level = "ERROR"
+		} else if statusCode >= 400 {
+			if minLevel > slog.LevelWarn {
+				return
+			}
+			level = "WARN"
+		} else {
+			if minLevel > slog.LevelInfo {
+				return
+			}
+			level = "INFO"
+		}
+
+		// Calculate latency
+		latency := time.Since(start)
+
+		// Log in our standard format
+		timestamp := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+		logLine := fmt.Sprintf("[%s] %s: Incoming request method=%s path=%s status=%d latency=%s ip=%s\n",
+			timestamp,
+			level,
+			c.Request.Method,
+			c.Request.URL.Path,
+			statusCode,
+			latency,
+			ip,
+		)
+
+		_, _ = fmt.Fprint(os.Stdout, logLine)
+	})
+
 	router.Use(gin.Recovery())
 
 	if deps.Config.Server.CORS.Enabled {
@@ -247,19 +286,8 @@ func (s *Server) setupRoutes(tokenExpirationDur time.Duration) {
 
 // rateLimitMiddleware creates a Gin middleware for rate limiting based on IP.
 func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
-	// Pre-parse trusted proxies once for the middleware
-	parsedTrustedProxies, err := iputil.ParseCIDRs(s.config.Server.TrustedProxies)
-	if err != nil {
-		// Log critical error during server setup
-		s.deps.AppLogger.Error("Failed to parse trusted proxies for rate limiter: %v", err)
-		// Return a middleware that always denies? Or panic?
-		return func(c *gin.Context) {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error (rate limiter config)"})
-		}
-	}
-
 	return func(c *gin.Context) {
-		ip := iputil.GetClientIP(c.Request, parsedTrustedProxies, s.config.Server.ClientIPHeader)
+		ip := iputil.GetClientIP(c.Request, s.trustedProxiesParsed, s.config.Server.ClientIPHeader)
 
 		s.limiterMu.Lock()
 		limiter, exists := s.limiters[ip]
