@@ -5,8 +5,6 @@
 
 ## HIGH PRIORITY
 
-- [-] Potrebuji trackovat na jake strance a kde byla log funkce v prohlizeci zavolana. Refferer nemusi byt. Potrebuji aby to javascript funkce pridala do dat, odesilanych na backend. Melo by to byt konfigurovatelne v configu, samostane jako dve moznosti track url a track traceback. Uprav config, implementuj to, uprav testy a dopln do dokumentace, nacti si rules, jak mas pracovat.
-
 ## LOW PRIORITY
 
 - [ ] ConfigReload existuje, ale je to skutecne implementovane, vidim to jen v config
