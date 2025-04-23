@@ -7,8 +7,6 @@
 
 ## LOW PRIORITY
 
-- [ ] Improve validation of config values (e.g., regex patterns in rules?) on load
-
 ## Tests
 
 - [ ] Implement systematic validation of log file content (JSON/Text) in E2E tests (using jq/grep/awk in run.sh or helper scripts).

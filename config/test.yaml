@@ -49,7 +49,7 @@ log_config:
         value: "testing-default"
     # log_destinations: ["file_plain"] # Revert this change
     script_injection:
-      - url: "/scripts/base-tracking.js"
+      - url: "https://test.example.com/scripts/base-tracking.js"
         async: true
 
   # Rule 1: Normal rule, inherits, adds/overwrites data and adds script
@@ -71,10 +71,10 @@ log_config:
     script_injection:
       - url: "https://cdn.example.com/tracker.js"
         async: true
-      - url: "/local/scripts/init.js"
+      - url: "https://test.example.com/local/scripts/init.js"
         async: false
         defer: true
-      - url: "/scripts/base-tracking.js"
+      - url: "https://test.example.com/scripts/base-tracking.js"
         async: true
         defer: false
     add_log_data:

@@ -89,7 +89,7 @@ func TestLoadConfig_Valid(t *testing.T) {
 	assert.Equal(t, "server_hostname", rule0.AddLogData[0].Name)
 	assert.Equal(t, "static", rule0.AddLogData[0].Source)
 	require.Len(t, rule0.ScriptInjection, 1)
-	assert.Equal(t, "/scripts/base-tracking.js", rule0.ScriptInjection[0].URL)
+	assert.Equal(t, "https://test.example.com/scripts/base-tracking.js", rule0.ScriptInjection[0].URL)
 	assert.True(t, rule0.ScriptInjection[0].Async)
 	assert.False(t, rule0.ScriptInjection[0].Defer)
 
@@ -112,9 +112,12 @@ func TestLoadConfig_Valid(t *testing.T) {
 	assert.Equal(t, "https://cdn.example.com/tracker.js", rule1.ScriptInjection[0].URL)
 	assert.True(t, rule1.ScriptInjection[0].Async)
 	assert.False(t, rule1.ScriptInjection[0].Defer)
-	assert.Equal(t, "/local/scripts/init.js", rule1.ScriptInjection[1].URL)
+	assert.Equal(t, "https://test.example.com/local/scripts/init.js", rule1.ScriptInjection[1].URL)
 	assert.False(t, rule1.ScriptInjection[1].Async)
 	assert.True(t, rule1.ScriptInjection[1].Defer)
+	assert.Equal(t, "https://test.example.com/scripts/base-tracking.js", rule1.ScriptInjection[2].URL)
+	assert.True(t, rule1.ScriptInjection[2].Async)
+	assert.False(t, rule1.ScriptInjection[2].Defer)
 
 	// Poslední pravidlo (Disabled)
 	lastRule := cfg.LogConfig[6]
@@ -543,6 +546,135 @@ security:
     expiration: "24h"
 `,
 			expectedError: "domain is required when server.mode is 'standalone'",
+		},
+		{
+			name: "Invalid domain in standalone mode",
+			config: `
+server:
+  mode: "standalone"
+  domain: "invalid_domain!"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
+security:
+  token:
+    secret: "test"
+    expiration: "24h"
+`,
+			expectedError: "server.domain 'invalid_domain!' is not a valid domain name",
+		},
+		{
+			name: "Invalid add_log_data source",
+			config: `
+server:
+  mode: "standalone"
+  domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
+security:
+  token:
+    secret: "test"
+    expiration: "24h"
+log_destinations:
+  - name: "file1"
+    type: file
+    path: /tmp/log.log
+    format: json
+    add_log_data:
+      - name: "foo"
+        source: "invalid"
+        value: "bar"
+`,
+			expectedError: "log_destinations[file1][0]: invalid source 'invalid'",
+		},
+		{
+			name: "Empty add_log_data name",
+			config: `
+server:
+  mode: "standalone"
+  domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
+security:
+  token:
+    secret: "test"
+    expiration: "24h"
+log_destinations:
+  - name: "file1"
+    type: file
+    path: /tmp/log.log
+    format: json
+    add_log_data:
+      - name: ""
+        source: "static"
+        value: "bar"
+`,
+			expectedError: "log_destinations[file1][0]: name is required",
+		},
+		{
+			name: "Invalid script_injection URL",
+			config: `
+server:
+  mode: "standalone"
+  domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
+security:
+  token:
+    secret: "test"
+    expiration: "24h"
+log_config:
+  - enabled: true
+    script_injection:
+      - url: "ftp://not-allowed.com/script.js"
+        async: true
+`,
+			expectedError: "log_config[0].script_injection[0]: url 'ftp://not-allowed.com/script.js' is not a valid URL",
+		},
+		{
+			name: "Invalid header name in rule condition",
+			config: `
+server:
+  mode: "standalone"
+  domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
+security:
+  token:
+    secret: "test"
+    expiration: "24h"
+log_config:
+  - enabled: true
+    condition:
+      headers:
+        "Invalid Header!": "value"
+`,
+			expectedError: "log_config[0].condition.headers: header name 'Invalid Header!' is not valid",
+		},
+		{
+			name: "Invalid header value type in rule condition",
+			config: `
+server:
+  mode: "standalone"
+  domain: "example.com"
+  unknown_route:
+    code: 200
+    cache_control: "public, max-age=3600"
+security:
+  token:
+    secret: "test"
+    expiration: "24h"
+log_config:
+  - enabled: true
+    condition:
+      headers:
+        X-Test: 123
+`,
+			expectedError: "log_config[0].condition.headers: header 'X-Test' value must be string or bool, got int",
 		},
 	}
 

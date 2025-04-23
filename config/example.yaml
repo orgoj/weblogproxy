@@ -8,7 +8,7 @@ server:
   port: 8080           # Port to listen on
   host: "0.0.0.0"      # Host to bind to (0.0.0.0 for all interfaces)
   mode: "embedded"     # 'standalone' or 'embedded'
-  # domain: "weblogproxy.example.com"  # Domain for absolute URLs in standalone mode (required for standalone)
+  # domain: "weblogproxy.example.com"  # Domain for absolute URLs in standalone mode (required for standalone, must be a valid domain name)
   # protocol: "http"    # Protocol for generated URLs ("http" or "https"), default: http
   path_prefix: "__wlp__" # Path prefix for endpoints, only used in 'embedded' mode (required for embedded)
   trusted_proxies:     # List of trusted reverse proxy IPs/CIDRs
@@ -57,7 +57,7 @@ log_config:
         - "192.168.1.0/24"  # Internal network
         - "10.0.0.0/8"      # VPN
       headers:
-        Content-Type: "application/json"   # Header must have this value
+        Content-Type: "application/json"   # Header name must be valid, value must be string or boolean (true=must exist, false=must NOT exist)
         Authorization: true                 # Header must exist (any value)
         X-Debug-Mode: false                 # Header must NOT exist
     enabled: true
@@ -68,7 +68,7 @@ log_config:
       track_traceback: true # Track JavaScript call stack for each log event
     add_log_data:
       - name: "website"
-        source: "static"
+        source: "static"   # Allowed: static, header, query, post
         value: "example.com"
       - name: "environment"
         source: "static"
@@ -77,7 +77,7 @@ log_config:
         source: "query"
         value: "utm_campaign"
     script_injection:
-      - url: "https://cdn.example.com/site-specific/init.js"
+      - url: "https://cdn.example.com/site-specific/init.js" # Must be a valid URL (http/https)
         async: false
         defer: true
     log_destinations: ["prod_file", "prod_gelf"] # List of destination names (optional, default: all enabled)

@@ -218,6 +218,9 @@ func validateConfig(cfg *Config) error {
 	if cfg.Server.Mode == "standalone" && cfg.Server.Domain == "" {
 		return errors.New("server.domain is required when server.mode is 'standalone'")
 	}
+	if cfg.Server.Mode == "standalone" && !isValidDomain(cfg.Server.Domain) {
+		return fmt.Errorf("server.domain '%s' is not a valid domain name", cfg.Server.Domain)
+	}
 	if cfg.Server.RequestLimits.MaxBodySize < 0 {
 		return errors.New("server.request_limits.max_body_size cannot be negative")
 	}
@@ -322,10 +325,33 @@ func validateConfig(cfg *Config) error {
 		if err := validateAddLogDataSpecs(rule.AddLogData, rulePath+".add_log_data"); err != nil {
 			return err
 		}
+		// Validate ScriptInjection URLs
+		for j, script := range rule.ScriptInjection {
+			if script.URL == "" {
+				return fmt.Errorf("%s.script_injection[%d]: url is required", rulePath, j)
+			}
+			if !isValidURL(script.URL) {
+				return fmt.Errorf("%s.script_injection[%d]: url '%s' is not a valid URL", rulePath, j, script.URL)
+			}
+		}
 		// Validate that specified log_destinations exist
 		for _, destName := range rule.LogDestinations {
 			if !destinationNames[destName] {
 				return fmt.Errorf("%s: specified log_destination '%s' not found in top-level log_destinations", rulePath, destName)
+			}
+		}
+		// Validate headers (must be string or bool)
+		for k, v := range rule.Condition.Headers {
+			if !isValidHeaderName(k) {
+				return fmt.Errorf("%s.condition.headers: header name '%s' is not valid", rulePath, k)
+			}
+			switch v := v.(type) {
+			case string:
+				// ok
+			case bool:
+				// ok
+			default:
+				return fmt.Errorf("%s.condition.headers: header '%s' value must be string or bool, got %T", rulePath, k, v)
 			}
 		}
 	}
@@ -554,4 +580,46 @@ func isValidJSIdentifier(s string) bool {
 	}
 
 	return !reservedWords[s]
+}
+
+// Helper: validace domény
+func isValidDomain(domain string) bool {
+	if len(domain) < 1 || len(domain) > 253 {
+		return false
+	}
+	labels := strings.Split(domain, ".")
+	for _, label := range labels {
+		if len(label) < 1 || len(label) > 63 {
+			return false
+		}
+		for i := 0; i < len(label); i++ {
+			c := label[i]
+			if !(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '-') {
+				return false
+			}
+		}
+		if label[0] == '-' || label[len(label)-1] == '-' {
+			return false
+		}
+	}
+	return true
+}
+
+// Helper: validace URL (pouze základní kontrola schématu a domény)
+func isValidURL(url string) bool {
+	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
+}
+
+// Helper: validace hlavičky
+func isValidHeaderName(name string) bool {
+	if len(name) == 0 || len(name) > 256 {
+		return false
+	}
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		if !(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '-' || c == '_') {
+			return false
+		}
+	}
+	return true
 }
