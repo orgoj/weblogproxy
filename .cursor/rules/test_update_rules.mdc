@@ -9,23 +9,22 @@ alwaysApply: false
   - `mise test`
   - `mise security-check`
   - `mise docker-test`
-- Unit Test Guidelines:
-  - Add or update tests in files named `*_test.go` next to modified code
-  - Use table-driven tests and subtests (`t.Run`) for different scenarios
-  - Mock external dependencies using interfaces and test doubles
-  - Keep tests focused and maintainable; one logical assertion per test
-- End-to-End Test Guidelines:
+- Unit Tests:
+  - Add or update tests in `*_test.go` next to modified code
+  - Use table-driven tests and subtests (`t.Run`)
+  - Mock external dependencies
+  - One logical assertion per test
+- End-to-End Tests:
   - Update or add tests under `test/api/`
-  - Ensure `test/run.sh` reflects new test scripts or dependencies
+  - Update `test/run.sh` if needed
   - Cover critical user flows and edge cases
-- Fixing Broken Tests:
-  - Diagnose failures, update code or test assertions as needed
-  - Never skip or disable tests; resolve the underlying issue
-- Relocating or Refactoring Tests:
-  - Update package declarations and import paths
-  - Preserve test coverage and ensure tests still execute
-- Post-Test Update Steps:
-  - Run `mise test` and fix any failures or lint warnings
+- Fixing Tests:
+  - Diagnose failures, update code or assertions
+  - Never skip or disable tests; resolve the issue
+- Refactoring/Relocating Tests:
+  - Update package/imports, preserve coverage
+- After test updates:
+  - Run `mise test`, fix failures/lint warnings
   - Update or remove related TODOs in `TODO.md`
   - Add entries to `CHANGELOG.md` summarizing test changes
-  - Commit with clear messages, referencing test updates (see commit rules)
+  - Commit with clear messages referencing test updates

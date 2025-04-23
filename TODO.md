@@ -25,6 +25,7 @@
 
 ## Maybe we'll do
 
+- [ ] Rewrite to Rust from zero
 - [-] Optimize system resource consumption (not started).
 - [?] Add basic load tests.
 - [?] Optional javascript template in condition
