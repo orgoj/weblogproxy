@@ -121,13 +121,14 @@ type LogRuleCondition struct {
 
 // LogRule represents a logging rule configuration
 type LogRule struct {
-	Condition         LogRuleCondition      `yaml:"condition"` // Use named type
-	Enabled           bool                  `yaml:"enabled"`
-	Continue          bool                  `yaml:"continue,omitempty"` // Default: false
-	ScriptInjection   []ScriptInjectionSpec `yaml:"script_injection,omitempty"`
-	AddLogData        []AddLogDataSpec      `yaml:"add_log_data,omitempty"`
-	LogDestinations   []string              `yaml:"log_destinations,omitempty"` // Optional list of destination names
-	JavaScriptOptions struct {
+	Condition          LogRuleCondition      `yaml:"condition"` // Use named type
+	Enabled            bool                  `yaml:"enabled"`
+	Continue           bool                  `yaml:"continue,omitempty"`             // Default: false
+	LogScriptDownloads bool                  `yaml:"log_script_downloads,omitempty"` // If true and continue:true, accumulates script download logging; if true and continue:false, enables script download logging
+	ScriptInjection    []ScriptInjectionSpec `yaml:"script_injection,omitempty"`
+	AddLogData         []AddLogDataSpec      `yaml:"add_log_data,omitempty"`
+	LogDestinations    []string              `yaml:"log_destinations,omitempty"` // Optional list of destination names
+	JavaScriptOptions  struct {
 		TrackURL       bool `yaml:"track_url,omitempty"`
 		TrackTraceback bool `yaml:"track_traceback,omitempty"`
 	} `yaml:"javascript_options,omitempty"`

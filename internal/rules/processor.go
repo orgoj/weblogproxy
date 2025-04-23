@@ -31,6 +31,7 @@ type RuleProcessor struct {
 type LogProcessingResult struct {
 	ShouldInjectScripts          bool                         // Should any scripts be injected? (Any rule matched condition)
 	ShouldLogToServer            bool                         // Should active logging to /log endpoint be enabled? (Determined by the *first* final rule)
+	ShouldLogScriptDownloads     bool                         // Should log script downloads? (Determined by the *first* final rule)
 	AccumulatedScripts           []config.ScriptInjectionSpec // List of unique scripts to inject from ALL matched rules
 	AccumulatedAddLogData        []config.AddLogDataSpec      // Combined specs from matched rules (last write wins for a name)
 	TargetDestinations           []string                     // Destinations from the *first* final rule (nil means all enabled)
@@ -55,11 +56,12 @@ func NewRuleProcessor(cfg *config.Config) (*RuleProcessor, error) {
 // Process evaluates the configured rules against the request parameters according to the defined logic.
 func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProcessingResult {
 	result := LogProcessingResult{
-		ShouldInjectScripts:   false,
-		ShouldLogToServer:     false, // Determined by the first final rule found, defaults to false
-		AccumulatedScripts:    nil,
-		AccumulatedAddLogData: nil,
-		TargetDestinations:    nil,
+		ShouldInjectScripts:      false,
+		ShouldLogToServer:        false, // Determined by the first final rule found, defaults to false
+		ShouldLogScriptDownloads: false,
+		AccumulatedScripts:       nil,
+		AccumulatedAddLogData:    nil,
+		TargetDestinations:       nil,
 		AccumulatedJavaScriptOptions: struct {
 			TrackURL       bool
 			TrackTraceback bool
@@ -113,6 +115,7 @@ func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProce
 			if !currentRule.Continue {
 				// This is a final rule - set logging decision and destinations
 				result.ShouldLogToServer = true
+				result.ShouldLogScriptDownloads = currentRule.LogScriptDownloads
 				if len(currentRule.LogDestinations) > 0 {
 					result.TargetDestinations = currentRule.LogDestinations
 				} else {

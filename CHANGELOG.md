@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Added script download logging feature configurable per rule with `log_script_downloads` option
+
 ### Changed
 - Removed User-Agent from base log record. User-Agent can now only be added via add_log_data configuration.
 - Added support for dots in site_id to allow domain-style identifiers

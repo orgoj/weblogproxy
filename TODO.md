@@ -5,8 +5,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] logovat i stazeni scriptu
-
 ## LOW PRIORITY
 
 - [ ] ConfigReload existuje, ale je to skutecne implementovane, vidim to jen v config
