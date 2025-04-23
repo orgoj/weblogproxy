@@ -1,8 +1,6 @@
 module github.com/orgoj/weblogproxy
 
-go 1.23.0
-
-toolchain go1.24.2
+go 1.24.2
 
 require (
 	github.com/gin-gonic/gin v1.10.0
@@ -18,10 +16,9 @@ require (
 require (
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
-	github.com/kr/text v0.2.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
 require (
@@ -32,7 +29,7 @@ require (
 
 require (
 	github.com/bytedance/sonic v1.13.2 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
