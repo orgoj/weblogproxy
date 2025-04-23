@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- Removed User-Agent from base log record. User-Agent can now only be added via add_log_data configuration.
+
 ## [0.12.5] - 2025-04-23
 
 ### Added

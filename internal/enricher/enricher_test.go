@@ -554,38 +554,34 @@ func TestCreateBaseRecord(t *testing.T) {
 	pid := os.Getpid()
 
 	tests := []struct {
-		name      string
-		siteID    string
-		gtmID     string
-		clientIP  string
-		userAgent string
-		want      map[string]interface{}
+		name     string
+		siteID   string
+		gtmID    string
+		clientIP string
+		want     map[string]interface{}
 	}{
 		{
-			name:      "With GTM ID",
-			siteID:    "siteA",
-			gtmID:     "GTM-XYZ",
-			clientIP:  "10.0.0.1",
-			userAgent: "AgentA",
+			name:     "With GTM ID",
+			siteID:   "siteA",
+			gtmID:    "GTM-XYZ",
+			clientIP: "10.0.0.1",
 			want: map[string]interface{}{
-				"v":          float64(0),
-				"name":       "weblogproxy",
-				"hostname":   hostname,
-				"pid":        pid,
-				"level":      enricher.DefaultLogLevel,
-				"msg":        "",
-				"site_id":    "siteA",
-				"gtm_id":     "GTM-XYZ",
-				"client_ip":  "10.0.0.1",
-				"user_agent": "AgentA",
+				"v":         float64(0),
+				"name":      "weblogproxy",
+				"hostname":  hostname,
+				"pid":       pid,
+				"level":     enricher.DefaultLogLevel,
+				"msg":       "",
+				"site_id":   "siteA",
+				"gtm_id":    "GTM-XYZ",
+				"client_ip": "10.0.0.1",
 			},
 		},
 		{
-			name:      "Without GTM ID",
-			siteID:    "siteB",
-			gtmID:     "", // Empty GTM ID
-			clientIP:  "10.0.0.2",
-			userAgent: "AgentB",
+			name:     "Without GTM ID",
+			siteID:   "siteB",
+			gtmID:    "", // Empty GTM ID
+			clientIP: "10.0.0.2",
 			want: map[string]interface{}{
 				"v":        float64(0),
 				"name":     "weblogproxy",
@@ -595,15 +591,14 @@ func TestCreateBaseRecord(t *testing.T) {
 				"msg":      "",
 				"site_id":  "siteB",
 				// gtm_id should be absent
-				"client_ip":  "10.0.0.2",
-				"user_agent": "AgentB",
+				"client_ip": "10.0.0.2",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := enricher.CreateBaseRecord(tt.siteID, tt.gtmID, tt.clientIP, tt.userAgent)
+			got := enricher.CreateBaseRecord(tt.siteID, tt.gtmID, tt.clientIP)
 
 			// Need to handle potential type difference for pid (int vs float64)
 			// Convert want pid to float64 for comparison if necessary

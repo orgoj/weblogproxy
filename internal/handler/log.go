@@ -169,8 +169,7 @@ func NewLogHandler(deps LogHandlerDependencies) gin.HandlerFunc {
 
 		// 5. Process each target destination
 		clientIPForLog := iputil.GetClientIP(ctx.Request, parsedTrustedProxies, deps.Config.Server.ClientIPHeader)
-		userAgentForLog := ctx.Request.UserAgent()
-		baseRecordTemplate := enricher.CreateBaseRecord(reqBody.SiteID, reqBody.GtmID, clientIPForLog, userAgentForLog)
+		baseRecordTemplate := enricher.CreateBaseRecord(reqBody.SiteID, reqBody.GtmID, clientIPForLog)
 
 		// 6. Send to Logger
 		anySuccess := false

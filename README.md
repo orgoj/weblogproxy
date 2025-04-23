@@ -106,13 +106,22 @@ server:
   unknown_route:
     code: 200  # HTTP status code for unknown routes (default: 200)
     cache_control: "public, max-age=3600"  # Cache header for unknown routes (default: 1 hour)
-  client_ip_header: "CF-Connecting-IP"
+  client_ip_header: "CF-Connecting-IP"  # Header to use for real client IP (e.g., CF-Connecting-IP, X-Real-IP)
 ```
 
-- `rate_limit` sets the maximum number of requests per minute per client IP to the `/log` endpoint. If the limit is exceeded, the server responds with HTTP 429 Too Many Requests and a JSON error message. Set to `0` to disable rate limiting.
-- `max_body_size` sets the maximum allowed size of the request body in bytes. Requests exceeding this size are rejected with HTTP 413.
-- `client_ip_header` specifies which HTTP header to use for extracting the real client IP address (e.g., `CF-Connecting-IP`, `X-Real-IP`, `X-Client-Real-IP`).
-- If set, the server will use the value of this header as the client IP, if it contains a valid IP address. If not set or the header is missing/invalid, and the request comes from a trusted proxy, the first IP from the `X-Forwarded-For` header is used. Otherwise, the direct socket address (`RemoteAddr`) is used.
+Note: User-Agent is not included in logs by default. If you need it, add it explicitly via `add_log_data` configuration:
+
+```yaml
+log_destinations:
+  - name: "file1"
+    type: "file"
+    path: "log/access.log"
+    format: "json"
+    add_log_data:
+      - name: "user_agent"
+        source: "header"
+        value: "User-Agent"
+```
 
 ### Security best practices
 - Always configure your reverse proxy (CDN, WAF, LB) to overwrite the chosen header with the real client IP and never forward it from the client.

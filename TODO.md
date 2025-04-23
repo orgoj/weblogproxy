@@ -5,7 +5,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] user_agent nema byt defaultne logovan
 - [ ] logovat i stazeni scriptu
 
 ## LOW PRIORITY

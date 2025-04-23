@@ -38,7 +38,7 @@ const (
 const DefaultLogLevel = INFO
 
 // CreateBaseRecord creates a new log record with required Bunyan fields
-func CreateBaseRecord(siteID, gtmID, clientIP, userAgent string) map[string]interface{} {
+func CreateBaseRecord(siteID, gtmID, clientIP string) map[string]interface{} {
 	hostname, _ := os.Hostname()
 	record := map[string]interface{}{
 		fieldVersion:  0, // Integer
@@ -49,7 +49,6 @@ func CreateBaseRecord(siteID, gtmID, clientIP, userAgent string) map[string]inte
 		fieldMsg:      "",
 		"site_id":     siteID,
 		"client_ip":   clientIP,
-		"user_agent":  userAgent,
 	}
 	if gtmID != "" {
 		record["gtm_id"] = gtmID
