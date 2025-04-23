@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.13.0] - 2025-04-23
 
 ### Added
 - Added script download logging feature configurable per rule with `log_script_downloads` option
