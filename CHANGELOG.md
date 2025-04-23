@@ -4,10 +4,6 @@
 
 ### Changed
 - Removed User-Agent from base log record. User-Agent can now only be added via add_log_data configuration.
-
-## [0.12.5] - 2025-04-23
-
-### Added
 - Added support for dots in site_id to allow domain-style identifiers
 
 ## [0.12.4] - 2025-04-22
