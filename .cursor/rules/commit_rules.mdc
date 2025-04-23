@@ -5,7 +5,7 @@ alwaysApply: false
 ---
 # 🚨 MANDATORY: Always Follow These Rules Before Every Git Commit
 - For every new configuration option, you MUST add it (with a comment) to [config/example.yaml](mdc:config/example.yaml) so users always see all available options.
-- Run all tests as defined in `mise.toml`: `mise test`, `mise security-check`, `mise docker-test`
+- For running, updating, and fixing tests, follow [test_update_rules.mdc](mdc:.cursor/rules/test_update_rules.mdc)
 - If there are any errors or warnings, fix them and re-run the tests until everything passes automatically
 - Once everything is resolved, continue with the following steps:
 - IMPORTANT: For completed tasks:

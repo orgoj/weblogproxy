@@ -1,0 +1,31 @@
+---
+description: ALWAYS READ THIS RULES FOR TESTING
+globs: 
+alwaysApply: false
+---
+# 📑 Test Update and Fix Rules
+
+- Always run tests before and after changes:
+  - `mise test`
+  - `mise security-check`
+  - `mise docker-test`
+- Unit Test Guidelines:
+  - Add or update tests in files named `*_test.go` next to modified code
+  - Use table-driven tests and subtests (`t.Run`) for different scenarios
+  - Mock external dependencies using interfaces and test doubles
+  - Keep tests focused and maintainable; one logical assertion per test
+- End-to-End Test Guidelines:
+  - Update or add tests under `test/api/`
+  - Ensure `test/run.sh` reflects new test scripts or dependencies
+  - Cover critical user flows and edge cases
+- Fixing Broken Tests:
+  - Diagnose failures, update code or test assertions as needed
+  - Never skip or disable tests; resolve the underlying issue
+- Relocating or Refactoring Tests:
+  - Update package declarations and import paths
+  - Preserve test coverage and ensure tests still execute
+- Post-Test Update Steps:
+  - Run `mise test` and fix any failures or lint warnings
+  - Update or remove related TODOs in `TODO.md`
+  - Add entries to `CHANGELOG.md` summarizing test changes
+  - Commit with clear messages, referencing test updates (see commit rules)
