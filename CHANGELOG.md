@@ -9,7 +9,7 @@
 ### Changed
 - Removed User-Agent from base log record. User-Agent can now only be added via add_log_data configuration.
 - Added support for dots in site_id to allow domain-style identifiers
-- Improved config validation: domain name, add_log_data fields, script_injection URLs (now allows relative paths), and rule headers are now strictly validated with clear error messages
+- Improved config validation: domain name, add_log_data fields, script_injection URLs (now allows relative paths, e.g. /scripts/base-tracking.js), and rule headers are now strictly validated with clear error messages
 
 ## [0.12.4] - 2025-04-22
 
