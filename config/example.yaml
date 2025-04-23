@@ -81,6 +81,17 @@ log_config:
         defer: true
     log_destinations: ["prod_file", "prod_gelf"] # List of destination names (optional, default: all enabled)
 
+  # Example rule with dots in site_id (for domain-style identifiers)
+  - condition:
+      site_id: "app.example.com"
+    enabled: true
+    javascript_options:
+      track_url: true
+    add_log_data:
+      - name: "domain"
+        source: "static"
+        value: "app.example.com"
+
   # Minimal rule (matches all, accumulates data/scripts, does not affect logging decision)
   - condition: {}
     enabled: true

@@ -5,7 +5,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] povolit tecky v site_id
 - [ ] user_agent nema byt defaultne logovan
 - [ ] logovat i stazeni scriptu
 

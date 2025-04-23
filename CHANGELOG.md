@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.12.5] - 2025-04-23
+
+### Added
+- Added support for dots in site_id to allow domain-style identifiers
+
 ## [0.12.4] - 2025-04-22
 
 ### Fixed

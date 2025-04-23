@@ -235,3 +235,46 @@ func TestLoggerJSHandler_WithJavaScriptOptionsInheritance(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "payload.data.__url = window.location.href;", "Should set __url in payload if enabled")
 	assert.Contains(t, w.Body.String(), "payload.data.__traceback = getCallStack();", "Should set __traceback in payload if enabled")
 }
+
+func TestLoggerJSHandler_WithDotInSiteID(t *testing.T) {
+	// Set up a test Gin context
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	// Create a request with site_id containing dots
+	req, _ := http.NewRequest("GET", "/logger.js?site_id=test.site.com", nil)
+	c.Request = req
+
+	// Setup config with a rule that matches site_id with dots
+	testConfig := &config.Config{}
+	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
+	testConfig.Security.Token.Secret = "test-secret"
+	testConfig.LogConfig = []config.LogRule{
+		{
+			Condition: config.LogRuleCondition{
+				SiteID: "test.site.com",
+			},
+			Enabled: true,
+		},
+	}
+
+	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	deps := handler.LoggerJSHandlerDeps{
+		RuleProcessor:      ruleProcessor,
+		Config:             testConfig,
+		TokenExpirationDur: 10 * time.Minute,
+		AppLogger:          logger.GetAppLogger(),
+	}
+
+	// Get the handler
+	handlerFunc := handler.NewLoggerJSHandler(deps)
+
+	// Execute the handler
+	handlerFunc(c)
+
+	// Check the response
+	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status")
+	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
+	assert.Contains(t, w.Body.String(), "logEnabled: true", "Should enable logging for valid site_id with dots")
+}
