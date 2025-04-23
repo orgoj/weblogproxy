@@ -29,11 +29,13 @@ func TestLoggerJSHandler_MissingSiteID(t *testing.T) {
 	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
 
 	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	loggerManager := logger.NewManager()
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 		AppLogger:          logger.GetAppLogger(),
+		LoggerManager:      loggerManager,
 	}
 
 	// Get the handler
@@ -65,11 +67,13 @@ func TestLoggerJSHandler_InvalidSiteID(t *testing.T) {
 	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
 
 	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	loggerManager := logger.NewManager()
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 		AppLogger:          logger.GetAppLogger(),
+		LoggerManager:      loggerManager,
 	}
 
 	// Get the handler
@@ -101,11 +105,13 @@ func TestLoggerJSHandler_InvalidGtmID(t *testing.T) {
 	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
 
 	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	loggerManager := logger.NewManager()
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 		AppLogger:          logger.GetAppLogger(),
+		LoggerManager:      loggerManager,
 	}
 
 	// Get the handler
@@ -153,11 +159,13 @@ func TestLoggerJSHandler_WithJavaScriptOptions(t *testing.T) {
 	}
 
 	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	loggerManager := logger.NewManager()
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 		AppLogger:          logger.GetAppLogger(),
+		LoggerManager:      loggerManager,
 	}
 
 	// Get the handler
@@ -216,11 +224,13 @@ func TestLoggerJSHandler_WithJavaScriptOptionsInheritance(t *testing.T) {
 	}
 
 	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	loggerManager := logger.NewManager()
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 		AppLogger:          logger.GetAppLogger(),
+		LoggerManager:      loggerManager,
 	}
 
 	// Get the handler
@@ -260,11 +270,13 @@ func TestLoggerJSHandler_WithDotInSiteID(t *testing.T) {
 	}
 
 	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
+	loggerManager := logger.NewManager()
 	deps := handler.LoggerJSHandlerDeps{
 		RuleProcessor:      ruleProcessor,
 		Config:             testConfig,
 		TokenExpirationDur: 10 * time.Minute,
 		AppLogger:          logger.GetAppLogger(),
+		LoggerManager:      loggerManager,
 	}
 
 	// Get the handler

@@ -19,7 +19,6 @@ import (
 	"github.com/orgoj/weblogproxy/internal/logger"
 	"github.com/orgoj/weblogproxy/internal/rules"
 	"github.com/orgoj/weblogproxy/internal/security"
-	"github.com/orgoj/weblogproxy/internal/truncate"
 	"github.com/orgoj/weblogproxy/internal/validation"
 )
 
@@ -155,103 +154,24 @@ func NewLoggerJSHandler(deps LoggerJSHandlerDeps) gin.HandlerFunc {
 			baseRecord["event_type"] = "script_download"
 			baseRecord["script_type"] = "logger"
 
-			// 4. Determine Target Destinations
-			var targetDestinations []string
-			if ruleResult.TargetDestinations == nil {
-				// No specific destinations from the final rule, use all enabled
-				targetDestinations = deps.LoggerManager.GetAllEnabledLoggerNames()
-			} else {
-				// Use the specific destinations from the final rule
-				// We still need to ensure these destinations are actually enabled in the LoggerManager
-				enabledLoggers := deps.LoggerManager.GetAllEnabledLoggerNames()
-				enabledMap := make(map[string]bool)
-				for _, name := range enabledLoggers {
-					enabledMap[name] = true
-				}
-				filteredDestinations := make([]string, 0, len(ruleResult.TargetDestinations))
-				for _, name := range ruleResult.TargetDestinations {
-					if enabledMap[name] {
-						filteredDestinations = append(filteredDestinations, name)
-					} else {
-						deps.AppLogger.Warn("Logger.js Handler: Rule specified destination '%s' which is not enabled or configured.", name)
-					}
-				}
-				targetDestinations = filteredDestinations
+			logDeps := struct {
+				LoggerManager *logger.Manager
+				Config        *config.Config
+				AppLogger     *logger.AppLogger
+			}{
+				deps.LoggerManager,
+				deps.Config,
+				deps.AppLogger,
 			}
 
-			if len(targetDestinations) == 0 {
-				deps.AppLogger.Warn("Logger.js Handler: No enabled log destinations found after rule processing.")
-				return
-			}
+			// Process and log to destinations using the common function
+			anySuccess := processAndLogToDestinations(ctx, logDeps, baseRecord, ruleResult, nil)
 
-			// 5. Process each target destination
-			anySuccess := false
-			for _, destName := range targetDestinations {
-				loggerInstance := deps.LoggerManager.GetLogger(destName)
-				if loggerInstance == nil {
-					deps.AppLogger.Error("Logger.js Handler: Logger instance '%s' not found or not initialized for SiteID '%s'", destName, siteID)
-					continue
-				}
-
-				// Create a fresh copy of the base record for this destination
-				destRecord := make(map[string]interface{}, len(baseRecord))
-				for k, v := range baseRecord {
-					destRecord[k] = v
-				}
-
-				var destConfig *config.LogDestination
-				for i := range deps.Config.LogDestinations {
-					if deps.Config.LogDestinations[i].Name == destName && deps.Config.LogDestinations[i].Enabled {
-						destConfig = &deps.Config.LogDestinations[i]
-						break
-					}
-				}
-
-				var destAdds []config.AddLogDataSpec
-				if destConfig != nil {
-					destAdds = destConfig.AddLogData
-				} else {
-					deps.AppLogger.Warn("Logger.js Handler: Destination config '%s' not found for SiteID '%s' after getting logger instance", destName, siteID)
-				}
-
-				// Use AccumulatedAddLogData from rules result
-				finalRecord, err := enricher.EnrichAndMerge(
-					destRecord,
-					ruleResult.AccumulatedAddLogData,
-					destAdds,
-					nil,
-					ctx.Request,
-				)
-				if err != nil {
-					deps.AppLogger.Error("Logger.js Handler: Failed to enrich/merge data for destination '%s', SiteID '%s': %v", destName, siteID, err)
-					continue
-				}
-
-				limit := int64(deps.Config.Server.RequestLimits.MaxBodySize)
-				if limit > 0 {
-					truncated, err := truncate.TruncateMapIfNeeded(&finalRecord, limit)
-					if err != nil {
-						deps.AppLogger.Error("Logger.js Handler: Failed to truncate log data for dest '%s', SiteID '%s': %v", destName, siteID, err)
-					}
-					if truncated && err == nil {
-						deps.AppLogger.Warn("Logger.js Handler: Log record truncated for dest '%s', SiteID '%s' due to size limit (%d bytes).", destName, siteID, limit)
-					}
-				}
-
-				// 6. Send to Logger
-				if err := loggerInstance.Log(finalRecord); err != nil {
-					deps.AppLogger.Error("Logger.js Handler: Failed to write log to destination '%s' for SiteID '%s': %v", destName, siteID, err)
-					continue
-				}
-
-				anySuccess = true
-			}
-
-			// Set response headers for successful logging
+			// Set response headers for successful logging (optional for script downloads, but good for consistency)
 			if anySuccess {
-				ctx.Header("X-Log-Status", "success")
+				ctx.Header("X-Log-Status", "script_download_success")
 			} else {
-				ctx.Header("X-Log-Status", "error")
+				ctx.Header("X-Log-Status", "script_download_error")
 			}
 		}
 

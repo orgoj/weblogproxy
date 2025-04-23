@@ -252,6 +252,7 @@ func (s *Server) setupRoutes(tokenExpirationDur time.Duration) {
 			TrustedProxies:     s.config.Server.TrustedProxies,
 			TokenExpirationDur: tokenExpirationDur,
 			AppLogger:          s.deps.AppLogger,
+			LoggerManager:      s.deps.LoggerManager,
 		}
 		group.GET("logger.js", handler.NewLoggerJSHandler(loggerJSDeps))
 

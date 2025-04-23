@@ -7,7 +7,6 @@
 
 ## LOW PRIORITY
 
-- [ ] ConfigReload existuje, ale je to skutecne implementovane, vidim to jen v config
 - [ ] Improve validation of config values (e.g., regex patterns in rules?) on load
 
 ## Tests

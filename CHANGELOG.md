@@ -4,6 +4,7 @@
 
 ### Added
 - Added script download logging feature configurable per rule with `log_script_downloads` option
+- Implemented periodic config reload (config_reload) with validation and live update, error on invalid config, no reload if validation fails
 
 ### Changed
 - Removed User-Agent from base log record. User-Agent can now only be added via add_log_data configuration.
@@ -38,6 +39,7 @@
 ### Fixed
 - Gin framework nyní vždy běží v release (production) módu, odstraněny debug hlášky v konzoli
 - Logování HTTP požadavků nyní respektuje nastavenou úroveň v app_log.level díky slog-gin middleware
+- LoggerJSHandler now always receives LoggerManager in production, fixing panic on server start and allowing all tests (including E2E) to pass
 
 
 ## [0.11.0] - 2025-04-17

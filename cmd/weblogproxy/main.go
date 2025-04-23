@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/orgoj/weblogproxy/internal/config"
 	"github.com/orgoj/weblogproxy/internal/logger"
@@ -85,6 +86,57 @@ func main() {
 
 	// Create Server instance
 	srv := server.NewServer(serverDeps)
+
+	// --- Config Reload Goroutine --- //
+	if cfg.ConfigReload.Enabled && cfg.ConfigReload.Interval > 0 {
+		configPathCopy := *configPath
+		interval := time.Duration(cfg.ConfigReload.Interval) * time.Second
+		lastModTime := func() time.Time {
+			info, err := os.Stat(configPathCopy)
+			if err != nil {
+				return time.Time{}
+			}
+			return info.ModTime()
+		}()
+
+		go func() {
+			for {
+				time.Sleep(interval)
+				info, err := os.Stat(configPathCopy)
+				if err != nil {
+					fmt.Fprintf(os.Stdout, "[ERROR] Config reload: cannot stat config file: %v\n", err)
+					continue
+				}
+				if info.ModTime().After(lastModTime) {
+					fmt.Fprintf(os.Stdout, "[INFO] Config reload: detected change, reloading...\n")
+					newCfg, err := config.LoadConfig(configPathCopy)
+					if err != nil {
+						fmt.Fprintf(os.Stdout, "[ERROR] Config reload: failed to load: %v\n", err)
+						continue
+					}
+					if err := config.ValidateConfig(newCfg); err != nil {
+						fmt.Fprintf(os.Stdout, "[ERROR] Config reload: validation failed: %v\n", err)
+						continue
+					}
+					// Re-init loggerManager and ruleProcessor
+					if err := loggerManager.InitLoggers(newCfg.LogDestinations); err != nil {
+						fmt.Fprintf(os.Stdout, "[ERROR] Config reload: failed to re-init loggers: %v\n", err)
+						continue
+					}
+					newRuleProcessor, err := rules.NewRuleProcessor(newCfg)
+					if err != nil {
+						fmt.Fprintf(os.Stdout, "[ERROR] Config reload: failed to re-init rule processor: %v\n", err)
+						continue
+					}
+					// Safe update runtime config
+					cfg = newCfg
+					ruleProcessor = newRuleProcessor
+					fmt.Fprintf(os.Stdout, "[INFO] Config reload: applied new configuration.\n")
+					lastModTime = info.ModTime()
+				}
+			}
+		}()
+	}
 
 	// --- Graceful Shutdown --- //
 
