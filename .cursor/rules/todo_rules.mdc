@@ -3,21 +3,21 @@ description: MUST READ THESE RULES BEFORE DOING ANY TODO TASK IN TODO.md or DIRE
 globs: 
 alwaysApply: false
 ---
-# 🚨 MANDATORY: Follow These Rules Before Doing Any TODO Task
+# 🚨 MANDATORY: TODO Task Rules
 - Read the first block of tasks
 - Identify related tasks that can be done simultaneously
 - Mark tasks you are working on with `[-]`
-- For searching file and strings in project use [file_search_rules.mdc](mdc:.cursor/rules/file_search_rules.mdc)
-- Read [DESCRIPTION.md](mdc:DESCRIPTION.md) for general application concept
-- Perform a code analysis to determine how to resolve the tasks
-- - For tasks involving updating tests, follow [test_update_rules.mdc](mdc:.cursor/rules/test_update_rules.mdc)
-- Find the latest information and procedures available online
-- Propose solutions with multiple options, write them to the user, and wait for approval to proceed
-- Process user feedback (if any) and repeat the previous step
-- If you have a work order, start implementation following the approved procedure
-- Work automatically, simply, and cleanly, as a professional senior developer
-- ALWAYS DO WHEN TASK IS COMPLETE, REMEMBER THIS:
-  1. First, mark it as done with `[x]` in TODO.md
-  2. Add corresponding entries to CHANGELOG.md
-  3. REMOVE the completed tasks entirely from TODO.md (don't just mark them as [x])
+- For searching in the project use [file_search_rules.mdc](mdc:.cursor/rules/file_search_rules.mdc)
+- Read [DESCRIPTION.md](mdc:DESCRIPTION.md) for general concept
+- Analyze code to resolve tasks
+- For test-related tasks, follow [test_update_rules.mdc](mdc:.cursor/rules/test_update_rules.mdc)
+- Find latest information and procedures online
+- Propose multiple solutions, write them to the user, and wait for approval
+- Process user feedback and repeat if needed
+- After approval, start implementation following the procedure
+- Work automatically, simply, and professionally
+- When a task is complete:
+  1. Mark it as done with `[x]` in `TODO.md`
+  2. Add a corresponding entry to `CHANGELOG.md`
+  3. REMOVE the completed task from `TODO.md`
   4. Follow `@commit_rules.mdc` for the commit process

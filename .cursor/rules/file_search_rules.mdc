@@ -3,16 +3,14 @@ description: ALWAYS READ THIS RULE WHEN SEARCH TEXT OR FILE
 globs: 
 alwaysApply: false
 ---
-## Ripgrep usage for search files and texts
+## File and Text Search Rules
 
 To search within file contents:
-
 ```bash
 rg --no-heading --line-number --color never 'search_term' .
 ```
 
 To search for filenames containing a term:
-
 ```bash
 rg --files --iglob '*search_term*'
 ```

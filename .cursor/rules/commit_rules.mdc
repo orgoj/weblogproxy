@@ -3,18 +3,17 @@ description: MUST READ THESE RULES FOR GIT COMMIT BEFORE EVERY COMMIT
 globs: 
 alwaysApply: false
 ---
-# 🚨 MANDATORY: Always Follow These Rules Before Every Git Commit
-- For every new configuration option, you MUST add it (with a comment) to [config/example.yaml](mdc:config/example.yaml) so users always see all available options.
-- For running, updating, and fixing tests, follow [test_update_rules.mdc](mdc:.cursor/rules/test_update_rules.mdc)
-- If there are any errors or warnings, fix them and re-run the tests until everything passes automatically
-- Once everything is resolved, continue with the following steps:
-- IMPORTANT: For completed tasks:
-  1. REMOVE completed items from `TODO.md` completely (not just marking them with [x])
-  2. ADD a corresponding entry to `CHANGELOG.md` in the appropriate section (Added/Changed/Fixed)
-- If the change is relevant to the user, also update `README.md`
-- Update project documentation in **all** relevant `.md` files
-- Commit all changes in English language:  
+# 🚨 MANDATORY: Git Commit Rules
+- Add every new configuration option (with a comment) to [config/example.yaml](mdc:config/example.yaml).
+- For tests, always follow [test_update_rules.mdc](mdc:.cursor/rules/test_update_rules.mdc).
+- Fix all errors and warnings, rerun tests until all pass.
+- When a task is complete:
+  1. REMOVE completed items from `TODO.md` (do not just mark them as [x])
+  2. ADD a corresponding entry to `CHANGELOG.md` (Added/Changed/Fixed)
+  3. If relevant to users, update `README.md`.
+  4. Update documentation in all relevant `.md` files.
+- Commit all changes in English:
   ```bash
-  git add . ; git commit -m "Short summary of changes (max 100 characters)" -m "Detailed description of what was changed"
+  git add . ; git commit -m "Short summary (max 100 chars)" -m "Detailed description of changes"
   ```
-- Describe what you did in the chat, and wait for the next task
+- Describe what you did in the chat and wait for the next task.
