@@ -4,7 +4,7 @@
 
 ### 1.1 Document title and version
 - PRD: WebLogProxy  
-- Version: 0.11.0
+- Version: 0.13.0
 
 ### 1.2 Product summary
 WebLogProxy is a flexible and secure client-side log collection service built in Go. It enables client‑side JavaScript applications to send structured log events to a central service, which then forwards these events to multiple destinations (files, syslog, GELF).
@@ -14,6 +14,8 @@ WebLogProxy is a flexible and secure client-side log collection service built in
 The tool supports rule‑based logging—filtering or enriching data based on site ID, Google Tag Manager ID, user agent, client IP or CIDR blocks—and allows script injection independently of logging. Security features include token generation/validation, rate limiting, CORS configuration, and an HTTP health check endpoint.
 
 With both standalone and embedded modes, WebLogProxy integrates seamlessly into existing deployments, offering minimal footprint and high performance. It is ideal for teams seeking lightweight, configurable, and secure client‑side log collection.
+
+It also supports dynamic configuration reload with validation and live update, and script download logging configurable per rule (`log_script_downloads`).
 
 ## 2. Goals
 
@@ -77,6 +79,10 @@ With both standalone and embedded modes, WebLogProxy integrates seamlessly into 
 - **Health and version endpoints** (Priority: Medium)  
   - Expose `/health` (200/ok) and `/version` (returns build version).  
   - Restrict `/health` by CIDR‑based `health_allowed_ips`.  
+- **Dynamic configuration reload** (Priority: Medium)
+  - Periodically reload configuration file with validation and live update; reject invalid configs if validation fails (`config_reload`).
+- **Script download logging** (Priority: Medium)
+  - Log client-side script download events when `log_script_downloads` is enabled in matching rules.
 - **Unknown route handling** (Priority: Low)  
   - Return configured HTTP status code and cache header for undefined paths.  
 - **Standalone and embedded modes** (Priority: Low)  
@@ -216,7 +222,7 @@ An operations engineer, Jana, needs to collect client‑side events from multipl
 - **ID**: US‑004  
 - **Description**: As an operator, I want to GET `/version` to confirm the deployed application version.  
 - **Acceptance criteria**:  
-  - Returns HTTP 200 and JSON `{"version":"0.11.0"}`.  
+  - Returns HTTP 200 and JSON `{"version":"0.13.0"}`.  
   - Value matches the build version.
 
 ### 10.5. Define logging rules
@@ -263,3 +269,11 @@ An operations engineer, Jana, needs to collect client‑side events from multipl
 - **Acceptance criteria**:  
   - Enrichment rules in config add or overwrite fields in outgoing logs.  
   - Nested objects and arrays handled correctly according to truncation limits.
+
+### 10.11. Script download logging
+- **ID**: US‑011
+- **Description**: As an operator, I want to log client-side script download events when matching rules enable `log_script_downloads` so that I can track script loads.
+- **Acceptance criteria**:
+  - When `log_script_downloads` is true for a matching rule, log entries are generated for each script download event.
+  - Download events include the script URL and timestamp.
+  - Events are forwarded to configured log destinations.
