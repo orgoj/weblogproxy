@@ -1,5 +1,8 @@
 # WebLogProxy
 
+[![GitHub Release](https://img.shields.io/github/v/release/orgoj/weblogproxy)](https://github.com/orgoj/weblogproxy/releases/latest)
+[![CI/CD](https://github.com/orgoj/weblogproxy/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/orgoj/weblogproxy/actions/workflows/ci.yml)
+
 [➡️ See CHANGELOG.md for recent changes](./CHANGELOG.md)
 
 WebLogProxy is a flexible and secure web logging proxy that allows you to collect and forward client-side logs from web applications to various destinations.
