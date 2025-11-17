@@ -43,7 +43,7 @@ func TestLoadConfig_Valid(t *testing.T) {
 	assert.Equal(t, "public, max-age=3600", cfg.Server.UnknownRoute.CacheControl)
 
 	// Security
-	assert.Equal(t, "super-secret-test-key-!@#$", cfg.Security.Token.Secret)
+	assert.Equal(t, "super-secret-test-key-32-chars!!", cfg.Security.Token.Secret)
 	assert.Equal(t, "30m", cfg.Security.Token.Expiration)
 
 	// Log Destinations
@@ -158,7 +158,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test_secret"
+    secret: "test_secret_that_is_at_least_32_characters_long_for_hmac"
     expiration: "invalid"
 `,
 			expectedError: "invalid security.token.expiration",
@@ -174,7 +174,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test_secret"
+    secret: "test_secret_that_is_at_least_32_characters_long_for_hmac"
     expiration: "0s"
 `,
 			expectedError: "duration must be positive: '0s'",
@@ -189,7 +189,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test_secret"
+    secret: "test_secret_that_is_at_least_32_characters_long_for_hmac"
     expiration: "24h"
 `,
 			expectedError: "invalid server.mode",
@@ -205,7 +205,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 `,
 			expectedError: "path_prefix is required when server.mode is 'embedded'",
@@ -221,7 +221,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 `,
 			expectedError: "domain is required when server.mode is 'standalone'",
@@ -237,7 +237,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "dup_name"
@@ -262,7 +262,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: ""
@@ -283,7 +283,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "mydest"
@@ -302,7 +302,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "file_dest"
@@ -323,7 +323,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "file_dest"
@@ -344,7 +344,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "gelf_dest"
@@ -365,7 +365,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "gelf_dest"
@@ -387,7 +387,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "gelf_dest"
@@ -409,7 +409,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_config:
   - condition: {}
@@ -432,7 +432,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_config:
   - condition: {}
@@ -455,7 +455,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_config:
   - condition: {}
@@ -478,7 +478,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "real_dest"
@@ -503,7 +503,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "file_dest"
@@ -526,7 +526,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 `,
 			expectedError: "path_prefix is required when server.mode is 'embedded'",
@@ -542,7 +542,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 `,
 			expectedError: "domain is required when server.mode is 'standalone'",
@@ -558,7 +558,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 `,
 			expectedError: "server.domain 'invalid_domain!' is not a valid domain name",
@@ -574,7 +574,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "file1"
@@ -599,7 +599,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_destinations:
   - name: "file1"
@@ -624,7 +624,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_config:
   - enabled: true
@@ -645,7 +645,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_config:
   - enabled: true
@@ -666,7 +666,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_config:
   - enabled: true
@@ -786,7 +786,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_config:
   - condition:
@@ -809,7 +809,7 @@ server:
     cache_control: "public, max-age=3600"
 security:
   token:
-    secret: "test"
+    secret: "test_token_secret_exactly_32chars"
     expiration: "24h"
 log_config:
   - condition: {}
@@ -863,7 +863,7 @@ server:
     max_age: 3600
 security:
   token:
-    secret: "test-secret"
+    secret: "test-secret-that-is-at-least-32-characters-long"
     expiration: "1h"
 `,
 			expectError: false,
@@ -881,7 +881,7 @@ server:
     enabled: false
 security:
   token:
-    secret: "test-secret"
+    secret: "test-secret-that-is-at-least-32-characters-long"
     expiration: "1h"
 `,
 			expectError: false,
@@ -901,7 +901,7 @@ server:
     max_age: 3600
 security:
   token:
-    secret: "test-secret"
+    secret: "test-secret-that-is-at-least-32-characters-long"
     expiration: "1h"
 `,
 			expectError:   true,
@@ -923,7 +923,7 @@ server:
     max_age: 3600
 security:
   token:
-    secret: "test-secret"
+    secret: "test-secret-that-is-at-least-32-characters-long"
     expiration: "1h"
 `,
 			expectError:   true,
@@ -945,7 +945,7 @@ server:
     max_age: 3600
 security:
   token:
-    secret: "test-secret"
+    secret: "test-secret-that-is-at-least-32-characters-long"
     expiration: "1h"
 `,
 			expectError: false,
@@ -966,7 +966,7 @@ server:
     max_age: -1
 security:
   token:
-    secret: "test-secret"
+    secret: "test-secret-that-is-at-least-32-characters-long"
     expiration: "1h"
 `,
 			expectError:   true,
@@ -987,7 +987,7 @@ server:
     max_age: -1
 security:
   token:
-    secret: "test-secret"
+    secret: "test-secret-that-is-at-least-32-characters-long"
     expiration: "1h"
 `,
 			expectError: false,

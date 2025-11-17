@@ -21,10 +21,26 @@ type ProcessingResult struct {
 	TargetDestinations    []string                     // From the *last* matching rule without continue (nil means all)
 }
 
+// compiledCondition holds pre-compiled patterns for efficient matching
+type compiledCondition struct {
+	siteID         string
+	gtmIDs         []string
+	userAgentGlobs []glob.Glob         // Pre-compiled glob patterns
+	ipCIDRs        []*net.IPNet        // Pre-parsed IP/CIDR ranges
+	headers        map[string]interface{}
+}
+
+// compiledRule holds a rule with its pre-compiled condition
+type compiledRule struct {
+	rule      config.LogRule
+	condition compiledCondition
+}
+
 // RuleProcessor processes log rules against request parameters.
 type RuleProcessor struct {
 	cfg            *config.Config
-	trustedProxies []*net.IPNet // Store parsed trusted proxies for reuse
+	trustedProxies []*net.IPNet      // Store parsed trusted proxies for reuse
+	compiledRules  []compiledRule    // Pre-compiled rules for performance
 }
 
 // LogProcessingResult holds the outcome of rule processing for a request.
@@ -41,15 +57,53 @@ type LogProcessingResult struct {
 	}
 }
 
-// NewRuleProcessor creates a new RuleProcessor.
+// NewRuleProcessor creates a new RuleProcessor with pre-compiled patterns.
 func NewRuleProcessor(cfg *config.Config) (*RuleProcessor, error) {
 	trustedProxies, err := iputil.ParseCIDRs(cfg.Server.TrustedProxies)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse trusted proxies: %w", err)
 	}
+
+	// Pre-compile all rules and their patterns
+	compiledRules := make([]compiledRule, 0, len(cfg.LogConfig))
+	for i, rule := range cfg.LogConfig {
+		compiled := compiledRule{
+			rule: rule,
+			condition: compiledCondition{
+				siteID:  rule.Condition.SiteID,
+				gtmIDs:  rule.Condition.GTMIDs,
+				headers: rule.Condition.Headers,
+			},
+		}
+
+		// Pre-compile user agent glob patterns
+		if len(rule.Condition.UserAgents) > 0 {
+			compiled.condition.userAgentGlobs = make([]glob.Glob, 0, len(rule.Condition.UserAgents))
+			for _, pattern := range rule.Condition.UserAgents {
+				g, err := glob.Compile(pattern)
+				if err != nil {
+					return nil, fmt.Errorf("rule %d: invalid user agent glob pattern '%s': %w", i, pattern, err)
+				}
+				compiled.condition.userAgentGlobs = append(compiled.condition.userAgentGlobs, g)
+			}
+		}
+
+		// Pre-parse IP/CIDR ranges
+		if len(rule.Condition.IPs) > 0 {
+			cidrs, err := iputil.ParseCIDRs(rule.Condition.IPs)
+			if err != nil {
+				return nil, fmt.Errorf("rule %d: invalid IP/CIDR patterns: %w", i, err)
+			}
+			compiled.condition.ipCIDRs = cidrs
+		}
+
+		compiledRules = append(compiledRules, compiled)
+	}
+
 	return &RuleProcessor{
 		cfg:            cfg,
-		trustedProxies: trustedProxies, // Store parsed CIDRs
+		trustedProxies: trustedProxies,
+		compiledRules:  compiledRules,
 	}, nil
 }
 
@@ -77,9 +131,9 @@ func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProce
 	}
 	userAgent := r.UserAgent()
 
-	// Iterate through rules
-	for i, rule := range rp.cfg.LogConfig {
-		currentRule := rule // Use copy inside loop
+	// Iterate through pre-compiled rules
+	for i, compiled := range rp.compiledRules {
+		currentRule := compiled.rule
 		ruleID := i
 
 		// Skip disabled rules entirely
@@ -87,7 +141,7 @@ func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProce
 			continue
 		}
 
-		if rp.matchCondition(ruleID, currentRule.Condition, siteID, gtmID, clientIP, userAgent, r) {
+		if rp.matchCompiledCondition(ruleID, compiled.condition, siteID, gtmID, clientIP, userAgent, r) {
 			// Rule condition matched
 			result.ShouldInjectScripts = true // Mark that scripts might need injection
 
@@ -144,7 +198,103 @@ func (rp *RuleProcessor) Process(siteID, gtmID string, r *http.Request) LogProce
 	return result
 }
 
+// matchCompiledCondition checks if the request parameters match the pre-compiled condition.
+// Uses pre-compiled glob patterns and CIDR ranges for better performance.
+func (rp *RuleProcessor) matchCompiledCondition(ruleID int, cond compiledCondition, siteID, gtmID string, clientIP net.IP, userAgent string, r *http.Request) bool {
+	// Check if condition is empty (matches everything)
+	emptyCondition := cond.siteID == "" && len(cond.gtmIDs) == 0 && len(cond.userAgentGlobs) == 0 && len(cond.ipCIDRs) == 0 && len(cond.headers) == 0
+	if emptyCondition {
+		return true
+	}
+
+	// SiteID check
+	if cond.siteID != "" {
+		if cond.siteID != siteID {
+			return false
+		}
+	}
+
+	// GTMIDs check
+	if len(cond.gtmIDs) > 0 {
+		match := false
+		for _, ruleGtmID := range cond.gtmIDs {
+			if ruleGtmID == gtmID {
+				match = true
+				break
+			}
+		}
+		if !match {
+			return false
+		}
+	}
+
+	// Headers check
+	if len(cond.headers) > 0 {
+		if r == nil {
+			return false
+		}
+
+		for headerName, headerCondition := range cond.headers {
+			// Processing false value means the header must be absent
+			if headerCondition == false {
+				if r.Header.Get(headerName) != "" {
+					return false
+				}
+				continue
+			}
+
+			// Value true means the header must exist (regardless of its value)
+			if headerCondition == true {
+				if r.Header.Get(headerName) == "" {
+					return false
+				}
+				continue
+			}
+
+			// Check for specific header value
+			expectedValue, ok := headerCondition.(string)
+			if ok {
+				actualValue := r.Header.Get(headerName)
+				if actualValue != expectedValue {
+					return false
+				}
+			} else {
+				// Unsupported value type in condition
+				return false
+			}
+		}
+	}
+
+	// UserAgents check - use pre-compiled glob patterns
+	if len(cond.userAgentGlobs) > 0 {
+		match := false
+		for _, g := range cond.userAgentGlobs {
+			if g.Match(userAgent) {
+				match = true
+				break
+			}
+		}
+		if !match {
+			return false
+		}
+	}
+
+	// IPs check - use pre-parsed CIDRs
+	if len(cond.ipCIDRs) > 0 {
+		if clientIP == nil {
+			return false
+		}
+		if !iputil.IsIPInAnyCIDR(clientIP, cond.ipCIDRs) {
+			return false
+		}
+	}
+
+	// All conditions matched
+	return true
+}
+
 // matchCondition checks if the request parameters match the rule's condition.
+// DEPRECATED: Use matchCompiledCondition instead for better performance.
 // Added ruleID for logging purposes.
 func (rp *RuleProcessor) matchCondition(ruleID int, cond config.LogRuleCondition, siteID, gtmID string, clientIP net.IP, userAgent string, r *http.Request) bool {
 	// fmt.Printf("[DEBUG] matchCondition: Evaluating Rule %d, Condition: %+v, Inputs: siteID='%s', gtmID='%s', clientIP='%v', userAgent='%s'\n", ruleID, cond, siteID, gtmID, clientIP, userAgent)

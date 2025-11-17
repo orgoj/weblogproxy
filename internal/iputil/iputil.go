@@ -57,12 +57,22 @@ func IsIPInAnyCIDR(ip net.IP, cidrs []*net.IPNet) bool {
 // then X-Forwarded-For (if remote IP is trusted), and finally falls back to RemoteAddr.
 func GetClientIP(r *http.Request, trustedProxies []*net.IPNet, clientIPHeader string) string {
 	// 1. Try configured header (e.g. CF-Connecting-IP, X-Real-IP, X-Client-Real-IP)
+	// SECURITY: Only trust custom header if request came from a trusted proxy
 	if clientIPHeader != "" {
-		h := r.Header.Get(clientIPHeader)
-		if h != "" {
-			ip := strings.TrimSpace(h)
-			if net.ParseIP(ip) != nil {
-				return ip
+		remoteIPStr, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			remoteIPStr = r.RemoteAddr
+		}
+		remoteIP := net.ParseIP(remoteIPStr)
+
+		// Only trust the custom header if the immediate sender is in trusted_proxies
+		if remoteIP != nil && IsIPInAnyCIDR(remoteIP, trustedProxies) {
+			h := r.Header.Get(clientIPHeader)
+			if h != "" {
+				ip := strings.TrimSpace(h)
+				if net.ParseIP(ip) != nil {
+					return ip
+				}
 			}
 		}
 	}

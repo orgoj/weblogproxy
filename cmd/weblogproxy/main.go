@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -15,6 +17,14 @@ import (
 	"github.com/orgoj/weblogproxy/internal/rules"
 	"github.com/orgoj/weblogproxy/internal/server"
 	"github.com/orgoj/weblogproxy/internal/version"
+)
+
+var (
+	// Mutex protection for config reload to prevent race conditions
+	configMu          sync.RWMutex
+	currentCfg        *config.Config
+	currentRuleProc   *rules.RuleProcessor
+	currentLoggerMgr  *logger.Manager
 )
 
 func main() {
@@ -74,6 +84,13 @@ func main() {
 		appLogger.Fatal("Failed to initialize rule processor: %v", err)
 	}
 
+	// Initialize global config variables with mutex protection
+	configMu.Lock()
+	currentCfg = cfg
+	currentRuleProc = ruleProcessor
+	currentLoggerMgr = loggerManager
+	configMu.Unlock()
+
 	// Prepare server dependencies
 	serverDeps := server.Dependencies{
 		Config:        cfg,
@@ -118,20 +135,33 @@ func main() {
 						fmt.Fprintf(os.Stdout, "[ERROR] Config reload: validation failed: %v\n", err)
 						continue
 					}
-					// Re-init loggerManager and ruleProcessor
-					if err := loggerManager.InitLoggers(newCfg.LogDestinations); err != nil {
+
+					// Re-init loggerManager
+					configMu.RLock()
+					mgr := currentLoggerMgr
+					configMu.RUnlock()
+
+					if err := mgr.InitLoggers(newCfg.LogDestinations); err != nil {
 						fmt.Fprintf(os.Stdout, "[ERROR] Config reload: failed to re-init loggers: %v\n", err)
 						continue
 					}
+
 					newRuleProcessor, err := rules.NewRuleProcessor(newCfg)
 					if err != nil {
 						fmt.Fprintf(os.Stdout, "[ERROR] Config reload: failed to re-init rule processor: %v\n", err)
 						continue
 					}
-					// Safe update runtime config
+
+					// Thread-safe update of runtime config
+					configMu.Lock()
+					currentCfg = newCfg
+					currentRuleProc = newRuleProcessor
 					cfg = newCfg
 					ruleProcessor = newRuleProcessor
+					configMu.Unlock()
+
 					fmt.Fprintf(os.Stdout, "[INFO] Config reload: applied new configuration.\n")
+					fmt.Fprintf(os.Stdout, "[WARN] Config reload: Note that server instances retain original config. Restart required for full effect.\n")
 					lastModTime = info.ModTime()
 				}
 			}
@@ -152,17 +182,14 @@ func main() {
 	<-quit
 	appLogger.Info("Received shutdown signal.")
 
-	// The context is used to inform the server it has 5 seconds to finish
-	// the requests it is currently handling
-	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	// defer cancel()
-	// TODO: Implement graceful server shutdown using http.Server
-	// if err := srv.Shutdown(ctx); err != nil {
-	// 	 fmt.Printf("Server forced to shutdown: %v\n", err)
-	// }
+	// Graceful shutdown with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	// Close loggers (already deferred)
-	// loggerManager.CloseAll()
+	appLogger.Info("Shutting down server gracefully...")
+	if err := srv.Shutdown(ctx); err != nil {
+		appLogger.Error("Server forced to shutdown: %v", err)
+	}
 
 	appLogger.Info("WebLogProxy shut down gracefully.")
 	os.Exit(0)

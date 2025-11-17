@@ -212,6 +212,7 @@ func TestRateLimitMiddlewareIsolated(t *testing.T) {
 	t.Run("Custom header", func(t *testing.T) {
 		parsedTrustedProxies, _ := iputil.ParseCIDRs([]string{"10.0.0.1/32"})
 		req := httptest.NewRequest("GET", "/", nil)
+		req.RemoteAddr = "10.0.0.1:12345" // Set RemoteAddr to trusted proxy
 		req.Header.Set("X-Real-IP", "1.2.3.4")
 		ip := iputil.GetClientIP(req, parsedTrustedProxies, "X-Real-IP")
 		if ip != "1.2.3.4" {
