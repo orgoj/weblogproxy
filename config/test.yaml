@@ -27,7 +27,7 @@ server:
 
 security:
   token:
-    secret: "super-secret-test-key-!@#$"
+    secret: "super-secret-test-key-32-chars!!"
     # Token validity as string (e.g., "10m", "1h", "30m")
     expiration: "30m" # Changed from int to string
   # request_limits: moved to server section

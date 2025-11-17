@@ -64,7 +64,7 @@ type Config struct {
 		Headers       map[string]string `yaml:"headers"`
 		RequestLimits struct {
 			MaxBodySize int `yaml:"max_body_size"` // bytes
-			RateLimit   int `yaml:"rate_limit"`    // requests per minute (TODO: Implement)
+			RateLimit   int `yaml:"rate_limit"`    // requests per minute
 		} `yaml:"request_limits"`
 		JavaScript struct {
 			GlobalObjectName string `yaml:"global_object_name"` // Name of the global JS object (default: wlp)
@@ -167,9 +167,36 @@ func LoadConfig(path string) (*Config, error) {
 // validateConfig performs semantic validation of the configuration
 func validateConfig(cfg *Config) error {
 	// Basic security checks
+	const minSecretLength = 32 // Minimum 32 characters for HMAC-SHA256 security
+
 	if cfg.Security.Token.Secret == "" {
 		return errors.New("security.token.secret cannot be empty")
 	}
+
+	// Enforce minimum secret length for security
+	if len(cfg.Security.Token.Secret) < minSecretLength {
+		return fmt.Errorf("security.token.secret must be at least %d characters long, got %d. Use a strong random string", minSecretLength, len(cfg.Security.Token.Secret))
+	}
+
+	// Check for commonly used weak secrets
+	weakSecrets := []string{
+		"change_this_to_a_secure_random_string",
+		"secret",
+		"password",
+		"123456",
+		"12345678",
+		"qwerty",
+		"admin",
+		"letmein",
+		"welcome",
+		"monkey",
+	}
+	for _, weak := range weakSecrets {
+		if cfg.Security.Token.Secret == weak {
+			return fmt.Errorf("security.token.secret must not be a default or commonly used weak value. Use a strong random string of at least %d characters", minSecretLength)
+		}
+	}
+
 	// Token expiration validation
 	_, err := ParseDuration(cfg.Security.Token.Expiration)
 	if err != nil {
@@ -232,9 +259,11 @@ func validateConfig(cfg *Config) error {
 		}
 
 		// Validate each allowed origin
+		hasWildcard := false
 		for i, origin := range cfg.Server.CORS.AllowedOrigins {
 			if origin == "*" {
 				// Wildcard is valid (but potentially dangerous)
+				hasWildcard = true
 				continue
 			}
 
@@ -244,13 +273,17 @@ func validateConfig(cfg *Config) error {
 			}
 		}
 
+		// Print security warning for wildcard in CORS
+		if hasWildcard {
+			fmt.Fprintf(os.Stderr, "[SECURITY WARNING] CORS wildcard '*' detected in allowed_origins. This allows ANY origin to make requests.\n")
+			fmt.Fprintf(os.Stderr, "[SECURITY WARNING] Wildcard '*' is NOT recommended for production environments. Specify exact origins instead.\n")
+		}
+
 		// Validate MaxAge
 		if cfg.Server.CORS.MaxAge < 0 {
 			return errors.New("server.cors.max_age cannot be negative")
 		}
 	}
-
-	// TODO: Add validation for RateLimit when implemented
 
 	// Log Destinations validation
 	destinationNames := make(map[string]bool)

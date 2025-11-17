@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -29,20 +30,28 @@ type Dependencies struct {
 	AppLogger     *logger.AppLogger
 }
 
+// rateLimiterEntry holds a rate limiter and its last access time for cleanup
+type rateLimiterEntry struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
 // Server represents the HTTP server
 type Server struct {
 	router        *gin.Engine
 	config        *configparser.Config
 	loggerManager *logger.Manager
 	ruleProcessor *rules.RuleProcessor
+	httpServer    *http.Server // For graceful shutdown
 	// Rate limiting specific
-	limiters             map[string]*rate.Limiter
+	limiters             map[string]*rateLimiterEntry
 	limiterMu            sync.Mutex
 	rateLimit            rate.Limit
 	burstLimit           int
 	trustedProxiesParsed []*net.IPNet
 	healthAllowed        []*net.IPNet
 	deps                 Dependencies
+	shutdownChan         chan struct{} // For graceful cleanup shutdown
 }
 
 // NewServer creates a new server instance with its dependencies.
@@ -172,8 +181,9 @@ func NewServer(deps Dependencies) *Server {
 		config:        deps.Config,
 		loggerManager: deps.LoggerManager,
 		ruleProcessor: deps.RuleProcessor,
-		limiters:      make(map[string]*rate.Limiter),
+		limiters:      make(map[string]*rateLimiterEntry),
 		deps:          deps,
+		shutdownChan:  make(chan struct{}),
 	}
 
 	// Parse trusted_proxies and exit on invalid config
@@ -196,6 +206,9 @@ func NewServer(deps Dependencies) *Server {
 		// Set burst limit (e.g., allow bursts up to the per-minute limit)
 		server.burstLimit = deps.Config.Server.RequestLimits.RateLimit
 		deps.AppLogger.Info("Rate limiting enabled for /log: Rate=%.2f req/sec, Burst=%d", server.rateLimit, server.burstLimit)
+
+		// Start cleanup goroutine to prevent memory leak
+		go server.cleanupRateLimiters()
 	} else {
 		server.rateLimit = rate.Inf // No limit
 		server.burstLimit = 0
@@ -290,12 +303,19 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := iputil.GetClientIP(c.Request, s.trustedProxiesParsed, s.config.Server.ClientIPHeader)
 
+		now := time.Now()
 		s.limiterMu.Lock()
-		limiter, exists := s.limiters[ip]
+		entry, exists := s.limiters[ip]
 		if !exists {
-			limiter = rate.NewLimiter(s.rateLimit, s.burstLimit)
-			s.limiters[ip] = limiter
+			entry = &rateLimiterEntry{
+				limiter:  rate.NewLimiter(s.rateLimit, s.burstLimit),
+				lastSeen: now,
+			}
+			s.limiters[ip] = entry
+		} else {
+			entry.lastSeen = now
 		}
+		limiter := entry.limiter
 		s.limiterMu.Unlock()
 
 		if !limiter.Allow() {
@@ -331,8 +351,49 @@ func (s *Server) healthIPMiddleware() gin.HandlerFunc {
 func (s *Server) Start() error {
 	addr := fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
 	s.deps.AppLogger.Warn("Starting server on %s", addr)
-	// Consider using http.Server for more control over shutdown
-	return s.router.Run(addr)
+
+	// Create http.Server for graceful shutdown support
+	s.httpServer = &http.Server{
+		Addr:    addr,
+		Handler: s.router,
+	}
+
+	return s.httpServer.ListenAndServe()
+}
+
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown(ctx context.Context) error {
+	// Signal cleanup goroutines to stop
+	close(s.shutdownChan)
+
+	// Shutdown HTTP server
+	if s.httpServer != nil {
+		return s.httpServer.Shutdown(ctx)
+	}
+	return nil
+}
+
+// cleanupRateLimiters periodically removes inactive rate limiters to prevent memory leak
+func (s *Server) cleanupRateLimiters() {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			s.limiterMu.Lock()
+			now := time.Now()
+			for ip, entry := range s.limiters {
+				// Remove entries not seen in the last 24 hours
+				if now.Sub(entry.lastSeen) > 24*time.Hour {
+					delete(s.limiters, ip)
+				}
+			}
+			s.limiterMu.Unlock()
+		case <-s.shutdownChan:
+			return
+		}
+	}
 }
 
 // corsMiddleware creates a middleware for CORS
