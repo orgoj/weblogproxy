@@ -354,8 +354,12 @@ func (s *Server) Start() error {
 
 	// Create http.Server for graceful shutdown support
 	s.httpServer = &http.Server{
-		Addr:    addr,
-		Handler: s.router,
+		Addr:              addr,
+		Handler:           s.router,
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks (G112)
+		ReadTimeout:       30 * time.Second, // Maximum time to read entire request
+		WriteTimeout:      30 * time.Second, // Maximum time to write response
+		IdleTimeout:       60 * time.Second, // Maximum time to wait for next request (keep-alive)
 	}
 
 	return s.httpServer.ListenAndServe()
