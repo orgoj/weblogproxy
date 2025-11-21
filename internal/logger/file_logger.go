@@ -3,6 +3,7 @@
 package logger
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +17,13 @@ import (
 	"github.com/orgoj/weblogproxy/internal/config" // Assuming config path
 	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+// PERFORMANCE: Buffer pool for JSON encoding to reduce allocations
+var jsonBufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
 
 // FileLogger handles logging to a file with optional rotation.
 type FileLogger struct {
@@ -114,14 +122,19 @@ func (l *FileLogger) Log(record map[string]interface{}) error {
 	var err error
 
 	if l.format == "json" {
-		// Ensure standard fields for Bunyan compatibility if missing?
-		// Or assume Enricher already added them?
-		// For now, assume they exist if needed by the format.
+		// PERFORMANCE: Use buffer pool to reduce allocations
+		buf := jsonBufferPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		defer jsonBufferPool.Put(buf)
 
-		line, err = json.Marshal(record)
-		if err != nil {
+		encoder := json.NewEncoder(buf)
+		if err = encoder.Encode(record); err != nil {
 			return fmt.Errorf("failed to marshal log record to JSON: %w", err)
 		}
+
+		// Encode adds a newline, so we need to trim it before size check
+		line = bytes.TrimRight(buf.Bytes(), "\n")
+
 		// Check size *before* appending newline for JSON
 		if l.maxMessageSize > 0 && len(line) > l.maxMessageSize {
 			l.appLogger.Warn("Log message for destination '%s' truncated (JSON format). Size: %d > Limit: %d", l.name, len(line), l.maxMessageSize)

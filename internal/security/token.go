@@ -47,27 +47,31 @@ func ValidateToken(secret, siteID, gtmID, token string) (bool, error) {
 	var signature string
 	_, err := fmt.Sscanf(token, "%d:%s", &expiresAt, &signature)
 	if err != nil {
-		return false, fmt.Errorf("invalid token format: %w", err)
-	}
-
-	// Check if the token has expired using more precise time comparison
-	expirationTime := time.Unix(expiresAt, 0)
-	if time.Now().After(expirationTime) {
-		return false, fmt.Errorf("token has expired (expired at %s)", expirationTime.Format(time.RFC3339))
+		return false, fmt.Errorf("invalid token")
 	}
 
 	// Recreate the message
 	// The message MUST match the one used during generation (including expiresAt)
 	message := fmt.Sprintf("%s:%s:%d", siteID, gtmID, expiresAt)
 
-	// Create HMAC
+	// Create HMAC and validate signature FIRST (constant-time comparison)
+	// This prevents timing attacks that could distinguish between expired and invalid tokens
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(message))
 	expectedSignature := hex.EncodeToString(h.Sum(nil))
 
-	// Compare signatures
+	// Compare signatures using constant-time comparison
 	if !hmac.Equal([]byte(signature), []byte(expectedSignature)) {
-		return false, nil
+		// Return generic error - don't reveal whether signature or expiration failed
+		return false, fmt.Errorf("invalid token")
+	}
+
+	// Only check expiration AFTER signature validation succeeds
+	// This prevents timing attacks by ensuring all invalid tokens take similar time
+	expirationTime := time.Unix(expiresAt, 0)
+	if time.Now().After(expirationTime) {
+		// Return generic error to prevent information leakage
+		return false, fmt.Errorf("invalid token")
 	}
 
 	return true, nil

@@ -25,8 +25,8 @@ type ProcessingResult struct {
 type compiledCondition struct {
 	siteID         string
 	gtmIDs         []string
-	userAgentGlobs []glob.Glob         // Pre-compiled glob patterns
-	ipCIDRs        []*net.IPNet        // Pre-parsed IP/CIDR ranges
+	userAgentGlobs []glob.Glob  // Pre-compiled glob patterns
+	ipCIDRs        []*net.IPNet // Pre-parsed IP/CIDR ranges
 	headers        map[string]interface{}
 }
 
@@ -39,8 +39,8 @@ type compiledRule struct {
 // RuleProcessor processes log rules against request parameters.
 type RuleProcessor struct {
 	cfg            *config.Config
-	trustedProxies []*net.IPNet      // Store parsed trusted proxies for reuse
-	compiledRules  []compiledRule    // Pre-compiled rules for performance
+	trustedProxies []*net.IPNet   // Store parsed trusted proxies for reuse
+	compiledRules  []compiledRule // Pre-compiled rules for performance
 }
 
 // LogProcessingResult holds the outcome of rule processing for a request.

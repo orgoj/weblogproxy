@@ -252,7 +252,9 @@ func TestValidateToken_WrongSecret(t *testing.T) {
 	assert.NotEmpty(t, token)
 
 	valid, err := ValidateToken(wrongSecret, siteID, gtmID, token)
-	assert.NoError(t, err) // Error should not occur, validation just fails
+	assert.Error(t, err)
+	assert.Equal(t, "invalid token", err.Error())
+	assert.Equal(t, "invalid token", err.Error())
 	assert.False(t, valid)
 }
 
@@ -268,7 +270,8 @@ func TestValidateToken_WrongSiteID(t *testing.T) {
 	assert.NotEmpty(t, token)
 
 	valid, err := ValidateToken(secret, wrongSiteID, gtmID, token)
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.Equal(t, "invalid token", err.Error())
 	assert.False(t, valid)
 }
 
@@ -283,8 +286,10 @@ func TestValidateToken_WrongGtmID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, token)
 
+	// After timing attack fix, invalid signature returns generic error
 	valid, err := ValidateToken(secret, siteID, wrongGtmID, token)
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.Equal(t, "invalid token", err.Error())
 	assert.False(t, valid)
 }
 

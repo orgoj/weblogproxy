@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,6 +16,16 @@ import (
 	"github.com/orgoj/weblogproxy/internal/logger"
 	"github.com/orgoj/weblogproxy/internal/rules"
 )
+
+// Helper function to count sync.Map entries
+func syncMapLen(m *sync.Map) int {
+	count := 0
+	m.Range(func(key, value interface{}) bool {
+		count++
+		return true
+	})
+	return count
+}
 
 // Helper function to create minimal valid config for testing
 func createTestConfig() *config.Config {
@@ -67,7 +78,7 @@ func TestNewServer(t *testing.T) {
 
 		assert.NotNil(t, server)
 		assert.NotNil(t, server.router)
-		assert.NotNil(t, server.limiters)
+		// sync.Map is a value type, doesn't need nil check
 		assert.NotNil(t, server.shutdownChan)
 		assert.Equal(t, cfg, server.config)
 	})
@@ -177,44 +188,45 @@ func TestCleanupRateLimiters(t *testing.T) {
 		defer server.Shutdown(context.Background())
 
 		// Add entries with different ages
-		server.limiterMu.Lock()
-		server.limiters["192.168.1.1"] = &rateLimiterEntry{
+		// Removed limiterMu - using sync.Map
+		server.limiters.Store("192.168.1.1", &rateLimiterEntry{
 			limiter:  rate.NewLimiter(1, 5),
 			lastSeen: time.Now(),
-		}
-		server.limiters["192.168.1.2"] = &rateLimiterEntry{
+		})
+		server.limiters.Store("192.168.1.2", &rateLimiterEntry{
 			limiter:  rate.NewLimiter(1, 5),
 			lastSeen: time.Now().Add(-25 * time.Hour), // Old entry
-		}
-		server.limiters["192.168.1.3"] = &rateLimiterEntry{
+		})
+		server.limiters.Store("192.168.1.3", &rateLimiterEntry{
 			limiter:  rate.NewLimiter(1, 5),
 			lastSeen: time.Now().Add(-48 * time.Hour), // Very old entry
-		}
-		server.limiterMu.Unlock()
+		})
+		// Removed limiterMu
 
 		// Verify entries exist
-		server.limiterMu.Lock()
-		initialCount := len(server.limiters)
-		server.limiterMu.Unlock()
+		// Removed limiterMu - using sync.Map
+		initialCount := syncMapLen(&server.limiters)
+		// Removed limiterMu
 		assert.Equal(t, 3, initialCount)
 
 		// Manually trigger cleanup (simulate ticker)
-		server.limiterMu.Lock()
 		now := time.Now()
-		for ip, entry := range server.limiters {
+		server.limiters.Range(func(key, value interface{}) bool {
+			ip := key.(string)
+			entry := value.(*rateLimiterEntry)
 			if now.Sub(entry.lastSeen) > 24*time.Hour {
-				delete(server.limiters, ip)
+				server.limiters.Delete(ip)
 			}
-		}
-		server.limiterMu.Unlock()
+			return true
+		})
 
 		// Verify old entries removed, recent kept
-		server.limiterMu.Lock()
-		finalCount := len(server.limiters)
-		_, hasRecent := server.limiters["192.168.1.1"]
-		_, hasOld1 := server.limiters["192.168.1.2"]
-		_, hasOld2 := server.limiters["192.168.1.3"]
-		server.limiterMu.Unlock()
+		// Removed limiterMu - using sync.Map
+		finalCount := syncMapLen(&server.limiters)
+		_, hasRecent := server.limiters.Load("192.168.1.1")
+		_, hasOld1 := server.limiters.Load("192.168.1.2")
+		_, hasOld2 := server.limiters.Load("192.168.1.3")
+		// Removed limiterMu
 
 		assert.Equal(t, 1, finalCount, "Should only have 1 entry left")
 		assert.True(t, hasRecent, "Recent entry should remain")
@@ -389,12 +401,12 @@ func TestRateLimitMiddleware_WithEntry(t *testing.T) {
 		assert.Equal(t, 200, w.Code)
 
 		// Check entry was created
-		server.limiterMu.Lock()
-		entry, exists := server.limiters["1.2.3.4"]
-		server.limiterMu.Unlock()
-
+		// Removed limiterMu - using sync.Map
+		val, exists := server.limiters.Load("1.2.3.4")
 		assert.True(t, exists, "Entry should be created")
-		assert.NotNil(t, entry)
+		assert.NotNil(t, val)
+
+		entry := val.(*rateLimiterEntry)
 		assert.NotNil(t, entry.limiter)
 	})
 
@@ -428,9 +440,8 @@ func TestRateLimitMiddleware_WithEntry(t *testing.T) {
 		w1 := httptest.NewRecorder()
 		router.ServeHTTP(w1, req1)
 
-		server.limiterMu.Lock()
-		firstSeen := server.limiters["5.5.5.5"].lastSeen
-		server.limiterMu.Unlock()
+		val1, _ := server.limiters.Load("5.5.5.5")
+		firstSeen := val1.(*rateLimiterEntry).lastSeen
 
 		// Wait a bit
 		time.Sleep(10 * time.Millisecond)
@@ -441,9 +452,8 @@ func TestRateLimitMiddleware_WithEntry(t *testing.T) {
 		w2 := httptest.NewRecorder()
 		router.ServeHTTP(w2, req2)
 
-		server.limiterMu.Lock()
-		secondSeen := server.limiters["5.5.5.5"].lastSeen
-		server.limiterMu.Unlock()
+		val2, _ := server.limiters.Load("5.5.5.5")
+		secondSeen := val2.(*rateLimiterEntry).lastSeen
 
 		assert.True(t, secondSeen.After(firstSeen), "lastSeen should be updated")
 	})
@@ -484,11 +494,11 @@ func TestRateLimitMiddleware_WithEntry(t *testing.T) {
 		w2 := httptest.NewRecorder()
 		router.ServeHTTP(w2, req2)
 
-		server.limiterMu.Lock()
-		count := len(server.limiters)
-		_, hasIP1 := server.limiters["10.0.0.1"]
-		_, hasIP2 := server.limiters["10.0.0.2"]
-		server.limiterMu.Unlock()
+		// Removed limiterMu - using sync.Map
+		count := syncMapLen(&server.limiters)
+		_, hasIP1 := server.limiters.Load("10.0.0.1")
+		_, hasIP2 := server.limiters.Load("10.0.0.2")
+		// Removed limiterMu
 
 		assert.Equal(t, 2, count, "Should have 2 separate entries")
 		assert.True(t, hasIP1, "Should have entry for IP 1")

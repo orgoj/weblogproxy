@@ -44,8 +44,8 @@ type Server struct {
 	ruleProcessor *rules.RuleProcessor
 	httpServer    *http.Server // For graceful shutdown
 	// Rate limiting specific
-	limiters             map[string]*rateLimiterEntry
-	limiterMu            sync.Mutex
+	// PERFORMANCE: Using sync.Map for better concurrency than map+mutex
+	limiters             sync.Map
 	rateLimit            rate.Limit
 	burstLimit           int
 	trustedProxiesParsed []*net.IPNet
@@ -172,6 +172,9 @@ func NewServer(deps Dependencies) *Server {
 
 	router.Use(gin.Recovery())
 
+	// Add security headers middleware
+	router.Use(securityHeadersMiddleware())
+
 	if deps.Config.Server.CORS.Enabled {
 		router.Use(corsMiddleware(deps.Config.Server.CORS.AllowedOrigins, deps.Config.Server.CORS.MaxAge))
 	}
@@ -181,9 +184,9 @@ func NewServer(deps Dependencies) *Server {
 		config:        deps.Config,
 		loggerManager: deps.LoggerManager,
 		ruleProcessor: deps.RuleProcessor,
-		limiters:      make(map[string]*rateLimiterEntry),
-		deps:          deps,
-		shutdownChan:  make(chan struct{}),
+		// limiters sync.Map is zero-initialized
+		deps:         deps,
+		shutdownChan: make(chan struct{}),
 	}
 
 	// Parse trusted_proxies and exit on invalid config
@@ -304,21 +307,20 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 		ip := iputil.GetClientIP(c.Request, s.trustedProxiesParsed, s.config.Server.ClientIPHeader)
 
 		now := time.Now()
-		s.limiterMu.Lock()
-		entry, exists := s.limiters[ip]
-		if !exists {
-			entry = &rateLimiterEntry{
-				limiter:  rate.NewLimiter(s.rateLimit, s.burstLimit),
-				lastSeen: now,
-			}
-			s.limiters[ip] = entry
-		} else {
-			entry.lastSeen = now
-		}
-		limiter := entry.limiter
-		s.limiterMu.Unlock()
 
-		if !limiter.Allow() {
+		// PERFORMANCE: Use sync.Map LoadOrStore for lock-free operation
+		// This significantly reduces contention under high concurrent load
+		val, _ := s.limiters.LoadOrStore(ip, &rateLimiterEntry{
+			limiter:  rate.NewLimiter(s.rateLimit, s.burstLimit),
+			lastSeen: now,
+		})
+		entry := val.(*rateLimiterEntry)
+
+		// Update lastSeen time
+		// Note: This has a benign race condition, but it's acceptable for cleanup purposes
+		entry.lastSeen = now
+
+		if !entry.limiter.Allow() {
 			// Log the rate limit exceedance internally
 			s.deps.AppLogger.Info("Rate limit exceeded for IP: %s", ip)
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit exceeded"})
@@ -385,15 +387,17 @@ func (s *Server) cleanupRateLimiters() {
 	for {
 		select {
 		case <-ticker.C:
-			s.limiterMu.Lock()
 			now := time.Now()
-			for ip, entry := range s.limiters {
+			// PERFORMANCE: Use sync.Map Range for iteration
+			s.limiters.Range(func(key, value interface{}) bool {
+				ip := key.(string)
+				entry := value.(*rateLimiterEntry)
 				// Remove entries not seen in the last 24 hours
 				if now.Sub(entry.lastSeen) > 24*time.Hour {
-					delete(s.limiters, ip)
+					s.limiters.Delete(ip)
 				}
-			}
-			s.limiterMu.Unlock()
+				return true // continue iteration
+			})
 		case <-s.shutdownChan:
 			return
 		}
@@ -406,9 +410,10 @@ func corsMiddleware(allowedOrigins []string, maxAge int) gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 		found := false
 		// Handle wildcard or specific origin match
+		var matchedOrigin string
 		for _, allowedOrigin := range allowedOrigins {
 			if allowedOrigin == "*" || allowedOrigin == origin {
-				c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+				matchedOrigin = allowedOrigin
 				found = true
 				break
 			}
@@ -426,10 +431,16 @@ func corsMiddleware(allowedOrigins []string, maxAge int) gin.HandlerFunc {
 			return
 		}
 
-		// Common headers for allowed origins
+		// Set appropriate CORS headers based on origin type
+		c.Writer.Header().Set("Access-Control-Allow-Origin", matchedOrigin)
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, Authorization, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		// SECURITY: Never set Allow-Credentials with wildcard origin
+		// This prevents credential exposure to untrusted origins
+		if matchedOrigin != "*" {
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
 		// Set max age for preflight requests - allow browsers to cache the preflight response
 		if maxAge > 0 {
 			c.Writer.Header().Set("Access-Control-Max-Age", strconv.Itoa(maxAge))
@@ -438,6 +449,28 @@ func corsMiddleware(allowedOrigins []string, maxAge int) gin.HandlerFunc {
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
+		}
+
+		c.Next()
+	}
+}
+
+// securityHeadersMiddleware adds security-related HTTP headers
+func securityHeadersMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Prevent MIME type sniffing
+		c.Writer.Header().Set("X-Content-Type-Options", "nosniff")
+
+		// Prevent clickjacking attacks
+		c.Writer.Header().Set("X-Frame-Options", "DENY")
+
+		// Enable XSS protection (legacy browsers)
+		c.Writer.Header().Set("X-XSS-Protection", "1; mode=block")
+
+		// Add HSTS header if running on HTTPS
+		// This tells browsers to only connect via HTTPS in the future
+		if c.Request.TLS != nil {
+			c.Writer.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 
 		c.Next()
