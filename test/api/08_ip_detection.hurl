@@ -55,6 +55,7 @@ HTTP 200
 
 # Test 3: Send request with X-Forwarded-For from an untrusted proxy
 # An IP not in the trusted proxies list will be ignored
+# The actual client IP will be used, not from XFF
 POST {{log_url}}
 Content-Type: application/json
 X-Forwarded-For: 192.168.99.99, 10.10.10.10
@@ -65,7 +66,7 @@ X-Forwarded-For: 192.168.99.99, 10.10.10.10
     "data": {
         "message": "IP detection test - untrusted proxy",
         "test_id": "ip_detection_test_untrusted_proxy",
-        "expected_ip": "127.0.0.1" # The actual client IP, not from XFF
+        "expected_ip": "127.0.0.1"
     }
 }
 HTTP 200

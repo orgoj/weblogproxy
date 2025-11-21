@@ -13,7 +13,7 @@ HTTP 204
     header "Access-Control-Allow-Methods" == "GET, POST, OPTIONS"
     header "Access-Control-Allow-Headers" contains "Content-Type"
     header "Access-Control-Allow-Headers" contains "Authorization"
-    header "Access-Control-Allow-Credentials" == "true"
+    # NOTE: Access-Control-Allow-Credentials is NOT set with wildcard origin (CORS spec)
     header "Access-Control-Max-Age" exists
     header "Access-Control-Max-Age" == "3600"
 
@@ -27,7 +27,7 @@ HTTP 204
     header "Access-Control-Allow-Origin" == "*"
     header "Access-Control-Allow-Methods" == "GET, POST, OPTIONS"
     header "Access-Control-Allow-Headers" contains "Content-Type"
-    header "Access-Control-Allow-Credentials" == "true"
+    # NOTE: Access-Control-Allow-Credentials is NOT set with wildcard origin (CORS spec)
 
 # Test 7.3: Preflight OPTIONS request for explicitly allowed Origin
 OPTIONS {{log_url}}
@@ -39,7 +39,7 @@ HTTP 204
     header "Access-Control-Allow-Origin" == "*"
     header "Access-Control-Allow-Methods" == "GET, POST, OPTIONS"
     header "Access-Control-Allow-Headers" contains "Content-Type"
-    header "Access-Control-Allow-Credentials" == "true"
+    # NOTE: Access-Control-Allow-Credentials is NOT set with wildcard origin (CORS spec)
 
 # Test 7.4: Actual POST request with allowed Origin
 # Get valid token
@@ -65,10 +65,10 @@ Content-Type: application/json
 HTTP 200
 [Asserts]
     header "Access-Control-Allow-Origin" == "*"
-    header "Access-Control-Allow-Credentials" == "true"
+    # NOTE: Access-Control-Allow-Credentials is NOT set with wildcard origin (CORS spec)
     header "X-Log-Status" == "success"
 
-# Test 7.5: POST request with "dangerous" Origin 
+# Test 7.5: POST request with "dangerous" Origin
 # (but in wildcard mode it works as well)
 # Get valid token again
 GET {{logger_js_url}}?site_id={{valid_site_id}}&gtm_id={{valid_gtm_id}}
@@ -93,5 +93,5 @@ Content-Type: application/json
 HTTP 200
 [Asserts]
     header "Access-Control-Allow-Origin" == "*"
-    header "Access-Control-Allow-Credentials" == "true"
+    # NOTE: Access-Control-Allow-Credentials is NOT set with wildcard origin (CORS spec)
     header "X-Log-Status" == "success" # Works in wildcard mode 
