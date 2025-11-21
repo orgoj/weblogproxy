@@ -126,7 +126,7 @@ func TestValidateToken(t *testing.T) {
 			gtmID:     gtmID,
 			token:     token,
 			wantValid: false,
-			wantErr:   false,
+			wantErr:   true, // Changed: now returns error for security (timing attack mitigation)
 		},
 		{
 			name:      "Wrong GTM ID",
@@ -135,7 +135,7 @@ func TestValidateToken(t *testing.T) {
 			gtmID:     "wrong-gtm",
 			token:     token,
 			wantValid: false,
-			wantErr:   false,
+			wantErr:   true, // Changed: now returns error for security (timing attack mitigation)
 		},
 	}
 
@@ -210,7 +210,8 @@ func TestTokenValidationExpired(t *testing.T) {
 	valid, err := ValidateToken(secret, siteID, gtmID, pastToken)
 	assert.Error(t, err, "Validation of past expired token should return an error")
 	if err != nil { // Prevent panic when err == nil
-		assert.Contains(t, err.Error(), "token has expired", "Error message should indicate expiration")
+		// Changed: now returns generic error for security (timing attack mitigation)
+		assert.Contains(t, err.Error(), "invalid token", "Error message should be generic")
 	}
 	assert.False(t, valid, "Past expired token should be invalid")
 
@@ -224,7 +225,8 @@ func TestTokenValidationExpired(t *testing.T) {
 	validAfterWait, errAfterWait := ValidateToken(secret, siteID, gtmID, tokenValidGen)
 	assert.Error(t, errAfterWait, "Validation after waiting should return an error")
 	if errAfterWait != nil {
-		assert.Contains(t, errAfterWait.Error(), "token has expired")
+		// Changed: now returns generic error for security (timing attack mitigation)
+		assert.Contains(t, errAfterWait.Error(), "invalid token")
 	}
 	assert.False(t, validAfterWait, "Token validated after wait should be invalid")
 }
