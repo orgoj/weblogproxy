@@ -15,7 +15,8 @@ const (
 )
 
 // Regex for basic validation of IDs (alphanumeric, underscore, hyphen)
-var idRegex = regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)
+// Note: Dots are explicitly excluded to prevent path traversal attacks
+var idRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 // ErrInputTooLong indicates the input string exceeds the maximum allowed length.
 var ErrInputTooLong = errors.New("input exceeds maximum length")
@@ -32,7 +33,7 @@ func IsValidID(id string, maxLength int) error {
 		return fmt.Errorf("%w: got %d, max %d", ErrInputTooLong, len(id), maxLength)
 	}
 	if !idRegex.MatchString(id) {
-		return fmt.Errorf("%w: allowed alphanumeric, underscore, hyphen, dot", ErrInvalidChars)
+		return fmt.Errorf("%w: allowed alphanumeric, underscore, hyphen", ErrInvalidChars)
 	}
 	return nil
 }

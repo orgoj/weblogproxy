@@ -21,10 +21,10 @@ import (
 
 var (
 	// Mutex protection for config reload to prevent race conditions
-	configMu          sync.RWMutex
-	currentCfg        *config.Config
-	currentRuleProc   *rules.RuleProcessor
-	currentLoggerMgr  *logger.Manager
+	configMu         sync.RWMutex
+	currentCfg       *config.Config
+	currentRuleProc  *rules.RuleProcessor
+	currentLoggerMgr *logger.Manager
 )
 
 func main() {

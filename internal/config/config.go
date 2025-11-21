@@ -154,14 +154,33 @@ func LoadConfig(path string) (*Config, error) {
 	cfg.Server.UnknownRoute.CacheControl = "public, max-age=3600"
 
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		// Don't sanitize parse errors - they shouldn't contain secrets
 		return nil, fmt.Errorf("error parsing config file '%s': %w", path, err)
 	}
 
 	if err := validateConfig(&cfg); err != nil {
-		return nil, fmt.Errorf("configuration validation failed: %w", err)
+		// Sanitize validation errors to prevent secret leakage
+		return nil, sanitizeSecretInError(
+			fmt.Errorf("configuration validation failed: %w", err),
+			cfg.Security.Token.Secret,
+		)
 	}
 
 	return &cfg, nil
+}
+
+// sanitizeSecretInError redacts any occurrence of the secret from error messages
+// This prevents accidental secret exposure in logs or error outputs
+func sanitizeSecretInError(err error, secret string) error {
+	if err == nil || secret == "" {
+		return err
+	}
+	errMsg := err.Error()
+	if strings.Contains(errMsg, secret) {
+		errMsg = strings.ReplaceAll(errMsg, secret, "[REDACTED]")
+		return fmt.Errorf("%s", errMsg)
+	}
+	return err
 }
 
 // validateConfig performs semantic validation of the configuration

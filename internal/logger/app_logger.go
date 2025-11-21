@@ -103,28 +103,29 @@ func (l *AppLogger) IsHealthLoggingEnabled() bool {
 }
 
 // logf formats and logs a message if the level is sufficient
+// PERFORMANCE: Lock is only held during checks and write, not during formatting
 func (l *AppLogger) logf(level LogLevel, isHealth bool, format string, args ...interface{}) {
+	// Check if we should log - quick lock/unlock
 	l.mu.Lock()
-	defer l.mu.Unlock()
+	shouldSkipHealth := isHealth && !l.showHealth
+	shouldSkipLevel := level < l.level
+	l.mu.Unlock()
 
-	// Skip health logs if disabled
-	if isHealth && !l.showHealth {
+	// Skip if not needed (no lock held)
+	if shouldSkipHealth || shouldSkipLevel {
 		return
 	}
 
-	// Skip if log level is not sufficient
-	if level < l.level {
-		return
-	}
-
-	// Format: [2006-01-02T15:04:05Z] LEVEL: message
+	// Format message OUTSIDE the lock - this is the slow part
 	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
 	levelName := logLevelNames[level]
-
 	message := fmt.Sprintf(format, args...)
 	logLine := fmt.Sprintf("[%s] %s: %s\n", now, levelName, message)
 
+	// Only lock for the actual write operation
+	l.mu.Lock()
 	_, _ = fmt.Fprint(l.writer, logLine)
+	l.mu.Unlock()
 
 	// Immediately exit for FATAL logs
 	if level == FATAL {

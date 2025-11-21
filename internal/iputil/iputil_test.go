@@ -316,13 +316,13 @@ func TestGetClientIP(t *testing.T) {
 			description:     "Falls through when custom header is empty",
 		},
 		{
-			name:           "Empty trusted proxies",
-			remoteAddr:     "1.2.3.4:12345",
-			customHeader:   "X-Real-IP",
+			name:            "Empty trusted proxies",
+			remoteAddr:      "1.2.3.4:12345",
+			customHeader:    "X-Real-IP",
 			customHeaderVal: "99.99.99.99",
-			trustedProxies: []*net.IPNet{},
-			expectedIP:     "1.2.3.4",
-			description:    "Custom header ignored when no trusted proxies configured",
+			trustedProxies:  []*net.IPNet{},
+			expectedIP:      "1.2.3.4",
+			description:     "Custom header ignored when no trusted proxies configured",
 		},
 		{
 			name:            "Priority: Custom header over X-Forwarded-For",
@@ -397,7 +397,7 @@ func TestGetClientIP_RealWorldScenarios(t *testing.T) {
 		trustedProxies, _ := ParseCIDRs([]string{"10.0.0.0/8"})
 
 		req, _ := http.NewRequest("GET", "/", nil)
-		req.RemoteAddr = "203.0.113.50:12345" // Attacker's real IP
+		req.RemoteAddr = "203.0.113.50:12345"  // Attacker's real IP
 		req.Header.Set("X-Real-IP", "1.1.1.1") // Trying to spoof as 1.1.1.1
 
 		ip := GetClientIP(req, trustedProxies, "X-Real-IP")

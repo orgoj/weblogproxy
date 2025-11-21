@@ -252,22 +252,14 @@ func TestLoggerJSHandler_WithDotInSiteID(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	// Create a request with site_id containing dots
+	// Create a request with site_id containing dots (SECURITY: dots are now blocked to prevent path traversal)
 	req, _ := http.NewRequest("GET", "/logger.js?site_id=test.site.com", nil)
 	c.Request = req
 
-	// Setup config with a rule that matches site_id with dots
+	// Setup config
 	testConfig := &config.Config{}
 	testConfig.Server.JavaScript.GlobalObjectName = "wlp"
 	testConfig.Security.Token.Secret = "test-secret"
-	testConfig.LogConfig = []config.LogRule{
-		{
-			Condition: config.LogRuleCondition{
-				SiteID: "test.site.com",
-			},
-			Enabled: true,
-		},
-	}
 
 	ruleProcessor, _ := rules.NewRuleProcessor(testConfig)
 	loggerManager := logger.NewManager()
@@ -285,8 +277,10 @@ func TestLoggerJSHandler_WithDotInSiteID(t *testing.T) {
 	// Execute the handler
 	handlerFunc(c)
 
-	// Check the response
+	// Check the response - should return disabled logging due to invalid site_id (contains dots)
 	assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK status")
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/javascript", "Content-Type should be javascript")
-	assert.Contains(t, w.Body.String(), "logEnabled: true", "Should enable logging for valid site_id with dots")
+	// SECURITY FIX: Dots are now rejected to prevent path traversal attacks
+	assert.NotContains(t, w.Body.String(), "logEnabled: true", "Should NOT enable logging for site_id with dots (security)")
+	assert.Contains(t, w.Body.String(), "window.wlp.log = function() {};", "Should return disabled logger stub")
 }

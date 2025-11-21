@@ -335,13 +335,107 @@ func containsString(slice []string, s string) bool {
 	return false
 }
 
-// estimateSize estimates the size of the data by marshalling it to JSON.
+// estimateSize estimates the size of the data without marshalling to JSON.
+// PERFORMANCE: Uses recursive traversal instead of json.Marshal to avoid repeated allocations
 func estimateSize(data interface{}) (int64, error) {
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		return 0, err
+	return estimateSizeRecursive(data), nil
+}
+
+// estimateSizeRecursive recursively estimates JSON size without marshaling
+// This is much faster than json.Marshal for repeated size checks during truncation
+func estimateSizeRecursive(data interface{}) int64 {
+	switch v := data.(type) {
+	case nil:
+		return 4 // "null"
+
+	case bool:
+		if v {
+			return 4 // "true"
+		}
+		return 5 // "false"
+
+	case int:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case int8:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case int16:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case int32:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case int64:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case uint:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case uint8:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case uint16:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case uint32:
+		return int64(len(fmt.Sprintf("%d", v)))
+	case uint64:
+		return int64(len(fmt.Sprintf("%d", v)))
+
+	case float32:
+		return int64(len(fmt.Sprintf("%g", v)))
+	case float64:
+		return int64(len(fmt.Sprintf("%g", v)))
+
+	case string:
+		// Account for quotes and escaped characters
+		// Approximate: assume each character might need escaping (worst case)
+		escaped := 0
+		for _, c := range v {
+			if c == '"' || c == '\\' || c == '\n' || c == '\r' || c == '\t' {
+				escaped++
+			}
+		}
+		return int64(len(v) + escaped + 2) // +2 for quotes
+
+	case map[string]interface{}:
+		if len(v) == 0 {
+			return 2 // "{}"
+		}
+		size := int64(2) // "{" and "}"
+		first := true
+		for key, val := range v {
+			if !first {
+				size++ // comma
+			}
+			first = false
+			// Key size (quoted + escaped)
+			keyEscaped := 0
+			for _, c := range key {
+				if c == '"' || c == '\\' || c == '\n' || c == '\r' || c == '\t' {
+					keyEscaped++
+				}
+			}
+			size += int64(len(key) + keyEscaped + 2) // +2 for quotes
+			size++                                   // colon
+			size += estimateSizeRecursive(val)
+		}
+		return size
+
+	case []interface{}:
+		if len(v) == 0 {
+			return 2 // "[]"
+		}
+		size := int64(2) // "[" and "]"
+		for i, val := range v {
+			if i > 0 {
+				size++ // comma
+			}
+			size += estimateSizeRecursive(val)
+		}
+		return size
+
+	default:
+		// Fallback to json.Marshal for unknown types
+		bytes, err := json.Marshal(data)
+		if err != nil {
+			return 0
+		}
+		return int64(len(bytes))
 	}
-	return int64(len(bytes)), nil
 }
 
 // findLongestTruncatableString recursively searches the data structure for the longest string

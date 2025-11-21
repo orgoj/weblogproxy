@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/orgoj/weblogproxy/internal/config"
@@ -37,14 +38,35 @@ const (
 // DefaultLogLevel is INFO (30)
 const DefaultLogLevel = INFO
 
+// Cached system values to avoid repeated syscalls
+var (
+	cachedHostname string
+	cachedPid      int
+	cacheOnce      sync.Once
+)
+
+// initCachedValues initializes cached system values once
+func initCachedValues() {
+	hostname, err := os.Hostname()
+	if err != nil {
+		cachedHostname = "unknown"
+	} else {
+		cachedHostname = hostname
+	}
+	cachedPid = os.Getpid()
+}
+
 // CreateBaseRecord creates a new log record with required Bunyan fields
+// Uses cached hostname and PID to avoid repeated system calls
 func CreateBaseRecord(siteID, gtmID, clientIP string) map[string]interface{} {
-	hostname, _ := os.Hostname()
+	// Initialize cached values once
+	cacheOnce.Do(initCachedValues)
+
 	record := map[string]interface{}{
 		fieldVersion:  0, // Integer
 		fieldName:     "weblogproxy",
-		fieldHostname: hostname,
-		fieldPid:      os.Getpid(),     // Integer
+		fieldHostname: cachedHostname,  // Cached value
+		fieldPid:      cachedPid,       // Cached value
 		fieldLevel:    DefaultLogLevel, // Integer
 		fieldMsg:      "",
 		"site_id":     siteID,
