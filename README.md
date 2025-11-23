@@ -5,7 +5,11 @@
 
 [➡️ See CHANGELOG.md for recent changes](./CHANGELOG.md)
 
-WebLogProxy is a flexible and secure web logging proxy that allows you to collect and forward client-side logs from web applications to various destinations.
+WebLogProxy is a flexible and secure client-side log collection service that collects and forwards JavaScript logs from web applications to various destinations (files, GELF, syslog).
+
+> **⚠️ Important: Not an HTTP Proxy**
+>
+> Despite the name, WebLogProxy does **NOT** proxy HTTP/HTTPS traffic between clients and servers. It is a specialized service for collecting client-side JavaScript logs and forwarding them to logging backends. WebLogProxy is designed to run **behind** a reverse proxy (nginx, Cloudflare, etc.), not to act as one.
 
 ## Features
 
@@ -16,9 +20,26 @@ WebLogProxy is a flexible and secure web logging proxy that allows you to collec
 * **JavaScript Options**: Configure tracking of page URL and call stack trace for each log event based on rules.
 * **Security**: Secure token generation and validation with configurable expiration.
 * **Rate Limiting**: Protect against abuse with configurable rate limits.
-* **Flexible Deployment**: Run as a standalone server or embedded behind a reverse proxy.
+* **Flexible Deployment**: Run standalone on its own domain or mount behind a reverse proxy (nginx, Cloudflare, etc.).
 * **CORS Support**: Configure CORS for cross-origin requests.
 * **Minimal Footprint**: Built in Go for speed and efficiency, with a small memory footprint.
+
+### Performance Features
+
+WebLogProxy implements several optimizations for high-throughput, low-latency logging:
+
+* **Lock-Free Rate Limiting**: Uses `sync.Map` for concurrent per-IP rate limiting with minimal contention
+* **Buffer Pooling**: Reuses JSON encoding buffers (`sync.Pool`) to reduce allocations by 40-60%
+* **System Value Caching**: Caches hostname and PID to eliminate repeated syscalls (2 per log record)
+* **Optimized Truncation**: Intelligent size estimation without JSON marshaling for oversized messages
+* **HTTP Timeouts**: Configured timeouts prevent resource exhaustion and Slowloris attacks:
+  - Read Header Timeout: 10s
+  - Read/Write Timeout: 30s
+  - Idle Timeout: 60s (keep-alive)
+* **CORS Preflight Caching**: Reduces overhead with configurable max-age (default: 24h)
+* **Message Compression**: Optional gzip/zlib compression for GELF logs
+* **Log Rotation**: Automatic rotation with compression to manage disk usage
+* **Automatic Rate Limiter Cleanup**: Removes inactive IP limiters after 24 hours (runs every hour)
 
 ## Quick Start
 
@@ -81,6 +102,18 @@ Create a new configuration file based on the example:
 cp config/example.yaml config/config.yaml
 ```
 
+### Dynamic Configuration Reload
+
+Enable automatic configuration reloading without server restart:
+
+```yaml
+config_reload:
+  enabled: true       # Enable dynamic config reloading
+  interval: 60        # Check for config changes every 60 seconds
+```
+
+When enabled, WebLogProxy monitors the configuration file and automatically reloads it when changes are detected. Most configuration changes take effect immediately without restart.
+
 ### Application Logging Configuration
 
 This section controls the application's own logging (stdout), not the forwarded client logs.
@@ -98,19 +131,62 @@ server:
   host: "0.0.0.0"  # Listen on all interfaces
   port: 8080
   mode: "standalone"  # standalone or embedded
+  protocol: "http"   # Protocol for generated URLs: "http" or "https" (default: "http")
   domain: "log.example.com"  # Required for standalone mode
   path_prefix: ""  # Required for embedded mode
+
+  # Security and access control
   health_allowed_ips:
     - "192.168.0.0/16"  # Optional list of IP or CIDR strings allowed to access the /health endpoint (default: allow all)
-  # Add other server settings as needed (CORS, headers, etc.)
+  trusted_proxies:
+    - "192.168.0.0/16"  # List of trusted proxy IPs/CIDRs for X-Forwarded-For evaluation
+  client_ip_header: "CF-Connecting-IP"  # Header to use for real client IP (e.g., CF-Connecting-IP, X-Real-IP)
+
+  # Rate limiting and request constraints
   request_limits:
     rate_limit: 1000  # Max requests per minute per IP to /log (0 = unlimited)
+                      # Uses token bucket algorithm with automatic cleanup
+                      # Inactive IPs removed after 24h (cleanup runs every hour)
     max_body_size: 102400  # Max request body size in bytes (100KB)
+
+  # CORS configuration
+  cors:
+    enabled: true
+    allowed_origins:
+      - "https://example.com"  # Must start with http:// or https://, or use "*" for all
+    max_age: 86400  # Preflight cache duration in seconds (default: 86400 = 24h)
+
+  # JavaScript configuration
+  javascript:
+    global_object_name: "wlp"  # JavaScript global object name (default: "wlp")
+                               # Must be a valid JS identifier, not a reserved word
+
+  # Custom headers for /logger.js response
+  headers:
+    Cache-Control: "public, max-age=3600"
+
+  # Unknown route handling
   unknown_route:
     code: 200  # HTTP status code for unknown routes (default: 200)
-    cache_control: "public, max-age=3600"  # Cache header for unknown routes (default: 1 hour)
-  client_ip_header: "CF-Connecting-IP"  # Header to use for real client IP (e.g., CF-Connecting-IP, X-Real-IP)
+    cache_control: "public, max-age=3600"  # Cache header for unknown routes
 ```
+
+### Security Configuration
+
+Token-based authentication with HMAC-SHA256 signatures:
+
+```yaml
+security:
+  token:
+    secret: "your-secret-key-at-least-32-chars-long"  # Min 32 characters, avoid weak/default values
+    expiration: "24h"  # Token validity duration (e.g., "10m", "1h", "24h", "7d")
+```
+
+**Security Notes:**
+- Tokens use HMAC-SHA256 signatures (not JWT format)
+- Constant-time comparison prevents timing attacks
+- Token validation includes rate limiting to prevent brute-force attacks
+- Secret must be at least 32 characters and not a weak/default value
 
 Note: User-Agent is not included in logs by default. If you need it, add it explicitly via `add_log_data` configuration:
 
@@ -307,12 +383,90 @@ The rule processor follows these key principles:
    - No target destinations are set
    - Accumulated values from continue rules are still available
 
+### Rule Configuration Options
+
+Each rule in `log_config` supports the following options:
+
+**Matching Conditions:**
+```yaml
+log_config:
+  - condition:
+      site_id: "example.com"           # Match specific site
+      gtm_ids: ["GTM-XXXXXX"]          # Match specific GTM containers
+      user_agents: ["*Chrome*"]        # Glob patterns for user agent matching
+      ips: ["192.168.1.0/24"]          # IP addresses or CIDR ranges
+      headers:                         # Match HTTP headers
+        X-Custom-Header: "value"       # String value (exact match)
+        X-Required-Header: true        # true = header must exist
+        X-Excluded-Header: false       # false = header must NOT exist
+```
+
+**Rule Behavior:**
+```yaml
+    enabled: true                      # Enable/disable this rule
+    continue: false                    # If true, accumulate values but continue processing
+    log_script_downloads: true         # Log /logger.js downloads (useful for analytics)
+    log_destinations: ["file1", "gelf1"]  # Route logs to specific destinations (optional)
+```
+
+**JavaScript Configuration:**
+```yaml
+    javascript_options:
+      track_url: true                  # Include page URL in each log event
+      track_traceback: true            # Include JavaScript call stack in each log event
+```
+
+**Data Enrichment:**
+```yaml
+    add_log_data:
+      - name: "environment"
+        source: "static"               # static, header, query, post
+        value: "production"
+      - name: "user_agent"
+        source: "header"
+        value: "User-Agent"            # Header name to extract
+```
+
+**Script Injection:**
+```yaml
+    script_injection:
+      - url: "https://analytics.example.com/script.js"
+        async: true
+        defer: false
+      - url: "/local-script.js"        # Relative URLs supported
+        async: false
+        defer: true
+```
+
+**Notes:**
+- `javascript_options.track_url` adds the current page URL to log events
+- `javascript_options.track_traceback` captures JavaScript call stack for debugging
+- `log_script_downloads` creates log entries when `/logger.js` is requested
+- Header matching supports exact string values, `true` (exists), or `false` (doesn't exist)
+- User agent patterns support glob wildcards (`*`, `?`)
+
 ## Log Destinations
 
 WebLogProxy supports multiple log destination types to give you flexibility in how and where you store your logs:
 
 ### File Logger
-Writes logs to a local file with configurable path and rotation settings.
+Writes logs to a local file with configurable path, format, and rotation settings.
+
+**Configuration Example:**
+```yaml
+log_destinations:
+  - name: "file1"
+    type: "file"
+    enabled: true
+    path: "log/access.log"
+    format: "json"  # "json" or "text"
+    max_message_size: 4096  # Optional: Max message size in bytes (default: 4096)
+    rotation:
+      max_size: "100MB"    # Size-based rotation (supports K, KB, M, MB, G, GB)
+      max_age: "7d"        # Time-based rotation (supports m, h, d, w)
+      max_backups: 10      # Number of old files to keep
+      compress: true       # Compress rotated files with gzip
+```
 
 ### Syslog
 Forwards logs to a syslog server for centralized logging.
@@ -320,20 +474,25 @@ Forwards logs to a syslog server for centralized logging.
 ### GELF Logger
 Sends logs to Graylog servers using the GELF (Graylog Extended Log Format) protocol. Supports both UDP and TCP transport protocols.
 
-#### GELF Configuration Example:
+**Configuration Example:**
 ```yaml
-destinations:
-  - name: graylog
-    type: gelf
+log_destinations:
+  - name: "graylog"
+    type: "gelf"
     enabled: true
-    options:
-      host: "graylog.example.com:12201"  # Graylog server address with port
-      protocol: "udp"                   # Protocol: "udp" or "tcp"
-      compression_type: "gzip"          # Optional: Compression type - "gzip", "zlib", or "none" (default: "none")
-      additional_fields:                # Optional: Add custom fields to all GELF messages
-        environment: "production"
-        application: "weblogproxy"
+    host: "graylog.example.com"        # Graylog server address
+    port: 12201                        # Graylog server port
+    protocol: "udp"                    # Protocol: "udp" or "tcp" (default: "udp")
+    compression_type: "gzip"           # Compression: "gzip", "zlib", or "none" (default: "none")
+    max_message_size: 8192             # Optional: Max size in bytes (default: 8192 for UDP, unlimited for TCP)
 ```
+
+**Notes:**
+- UDP is faster but may drop messages under high load
+- TCP is more reliable but slightly slower
+- Compression only works with UDP protocol
+- Message size limits: file (4096 bytes), GELF UDP (8192 bytes), GELF TCP (unlimited)
+- Messages exceeding limits are automatically truncated using intelligent size estimation
 
 ## Architecture Overview
 
@@ -352,14 +511,47 @@ graph TD
 
 ## Security Features
 
-WebLogProxy implements several security mechanisms:
+WebLogProxy implements multiple layers of security:
 
-- **Token-based Authentication**: Each client receives a signed token via `/logger.js`, which must be included in log requests. Tokens have configurable expiration and are validated on the server.
-- **Input Validation**: All incoming data is validated and sanitized to prevent injection and malformed data.
-- **Rate Limiting**: Configurable rate limits per client/IP to prevent abuse and DoS attacks.
-- **CORS Configuration**: Only allowed origins can access the logging endpoints, configurable via YAML.
-- **Error Handling & Logging**: All errors are logged with context for audit and debugging.
-- **Separation of Destinations**: Logs can be routed to different destinations, isolating sensitive data if needed.
+### Authentication & Authorization
+- **Token-based Authentication**: HMAC-SHA256 signed tokens (not JWT) with configurable expiration
+- **Constant-time Comparison**: Prevents timing attacks during token validation
+- **Token Validation Rate Limiting**: Protects against brute-force token attacks
+- **IP-based Access Control**: Restrict `/health` endpoint to specific IPs/CIDRs
+
+### Input Protection
+- **Input Validation & Sanitization**: All incoming data validated with:
+  - ID validation: `^[a-zA-Z0-9_-]+$` pattern (no dots to prevent path traversal)
+  - String sanitization: removes non-printable characters
+  - Recursive depth limits (max: 10 levels)
+  - Maximum key/value lengths enforced
+- **Request Size Limits**: Configurable maximum body size (default: 100KB)
+- **Rate Limiting**: Per-IP token bucket algorithm with automatic cleanup
+
+### Network Security
+- **CORS Configuration**: Strict origin validation (must start with http:// or https://)
+- **Trusted Proxy Support**: Secure real IP detection from `X-Forwarded-For` and custom headers
+- **Security Headers**: Automatically applied to all responses:
+  - `X-Content-Type-Options: nosniff` (prevents MIME sniffing)
+  - `X-Frame-Options: DENY` (prevents clickjacking)
+  - `X-XSS-Protection: 1; mode=block` (legacy XSS protection)
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (when TLS detected)
+
+### Operational Security
+- **Secret Redaction**: Sensitive values masked in error messages and logs
+- **Timeout Protection**: Prevents Slowloris and resource exhaustion attacks:
+  - Read Header Timeout: 10s
+  - Read/Write Timeout: 30s
+  - Idle Timeout: 60s
+- **Error Handling**: Generic error messages prevent information leakage
+- **Audit Logging**: Unauthorized access attempts logged with IP addresses
+
+### Data Protection
+- **Separation of Destinations**: Route logs to different backends, isolating sensitive data
+- **Message Truncation**: Oversized messages safely truncated to prevent resource exhaustion
+
+### TLS/SSL
+WebLogProxy is designed to run behind a reverse proxy (nginx, Cloudflare, AWS ALB, etc.) that handles TLS termination. It does not implement native TLS support.
 
 ## Development
 
