@@ -1,4 +1,6 @@
-# weblogproxy - HTTP Logging Proxy Service Specification
+# weblogproxy - Client-Side Log Collection Service Specification
+
+> **Important:** WebLogProxy is NOT an HTTP/HTTPS proxy server. It collects client-side JavaScript logs and forwards them to logging backends. It is designed to run behind a reverse proxy (nginx, Cloudflare, etc.), not to act as one.
     - ## Basic Goal
 		- Easy logging from Google tag manager (GTM) for any web frontendapplication
 		- Configurable loggin activation for some or all web users
@@ -205,14 +207,35 @@
 				   - No target destinations are set
 				   - Accumulated values from continue rules are still available
 		- ### Security Characteristics
-			- Dynamic security token generation with configurable expiration.
-			- Rule-based filtering (`condition` in `log_config`).
-			- Configurable request size and rate limits (`server.request_limits`).
-			- Logging of unauthorized access attempts.
-			- Input sanitization and validation for all endpoints.
-			- Token-based Authentication: Each client receives a signed token via `/logger.js`, which must be included in log requests.
-			- Error Handling & Logging: All errors are logged with context for audit and debugging.
-			- Separation of Destinations: Logs can be routed to different destinations, isolating sensitive data if needed.
+			- **Token-based Authentication**:
+			  - HMAC-SHA256 signed tokens (NOT JWT format) with configurable expiration
+			  - Constant-time comparison prevents timing attacks
+			  - Token validation rate limiting protects against brute-force attacks
+			- **Security Headers**: Automatically applied to all responses:
+			  - X-Content-Type-Options: nosniff
+			  - X-Frame-Options: DENY
+			  - X-XSS-Protection: 1; mode=block
+			  - Strict-Transport-Security (when TLS detected)
+			- **Input Protection**:
+			  - Input sanitization and validation for all endpoints
+			  - ID validation prevents path traversal (no dots allowed)
+			  - Recursive depth limits (max: 10 levels)
+			  - Request size limits (configurable max_body_size)
+			- **Network Security**:
+			  - Rule-based filtering (`condition` in `log_config`)
+			  - CORS validation with strict origin checking
+			  - Trusted proxy support for real IP detection
+			  - IP-based access control for /health endpoint
+			- **Rate Limiting**:
+			  - Per-IP token bucket algorithm
+			  - Automatic cleanup (24h retention, 1h cleanup interval)
+			  - Configurable limits (`server.request_limits`)
+			- **Operational Security**:
+			  - Logging of unauthorized access attempts
+			  - Secret redaction in error messages
+			  - HTTP timeouts prevent resource exhaustion
+			  - Error Handling & Logging: All errors are logged with context for audit
+			  - Separation of Destinations: Logs can be routed to different destinations, isolating sensitive data
 		- ### Containerization
 			- Minimal Alpine Linux base image.
 			- Multi-stage build.
