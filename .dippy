@@ -1,0 +1,4 @@
+# temporary for github dependabot merge yolo
+#allow git *
+#allow gh *
+#allow go *
